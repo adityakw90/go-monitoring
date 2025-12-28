@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
@@ -20,8 +19,9 @@ import (
 
 // Tracer wraps OpenTelemetry tracer.
 type Tracer struct {
-	provider *sdktrace.TracerProvider
-	tracer   trace.Tracer
+	provider   *sdktrace.TracerProvider
+	tracer     trace.Tracer
+	propagator propagation.TextMapPropagator
 }
 
 // TracerOptions contains tracer configuration.
@@ -152,15 +152,10 @@ func NewTracer(opts ...TracerOption) (*Tracer, error) {
 		sdktrace.WithSampler(sampler),
 	)
 
-	// Register W3C Trace Context Propagator
-	otel.SetTextMapPropagator(propagation.TraceContext{})
-
-	// Set the global tracer provider
-	otel.SetTracerProvider(tp)
-
 	return &Tracer{
-		provider: tp,
-		tracer:   otel.Tracer(options.ServiceName),
+		provider:   tp,
+		tracer:     tp.Tracer(options.ServiceName),
+		propagator: propagation.TraceContext{},
 	}, nil
 }
 
@@ -182,9 +177,7 @@ func (t *Tracer) Shutdown(ctx context.Context) error {
 // NewSpanFromSpan creates a new span from a parent span.
 func (t *Tracer) NewSpanFromSpan(ctx context.Context, name string, parent trace.Span) (context.Context, trace.Span) {
 	newCtx := trace.ContextWithSpanContext(ctx, parent.SpanContext())
-	return t.StartSpan(newCtx, name, trace.WithLinks(trace.Link{
-		SpanContext: parent.SpanContext(),
-	}))
+	return t.StartSpan(newCtx, name)
 }
 
 // NewSpanFromContext gets a span from context.
@@ -200,13 +193,13 @@ func (t *Tracer) ExtractContext(ctx context.Context, md metadata.MD) context.Con
 			carrier.Set(k, v[0])
 		}
 	}
-	return otel.GetTextMapPropagator().Extract(ctx, carrier)
+	return t.propagator.Extract(ctx, carrier)
 }
 
 // InjectContext injects trace context into gRPC metadata.
 func (t *Tracer) InjectContext(ctx context.Context) metadata.MD {
 	md := metadata.New(nil)
-	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(md))
+	t.propagator.Inject(ctx, propagation.HeaderCarrier(md))
 
 	// Force metadata keys to lowercase
 	mdLower := metadata.New(nil)

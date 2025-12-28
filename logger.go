@@ -116,6 +116,14 @@ func (l *Logger) WithSpanContext(span trace.SpanContext) *Logger {
 	}
 }
 
+// Sync flushes any buffered log entries.
+func (l *Logger) Sync() error {
+	if l == nil || l.logger == nil {
+		return nil
+	}
+	return l.logger.Sync()
+}
+
 // convertFields converts map[string]interface{} to zap fields.
 func (l *Logger) convertFields(fields map[string]interface{}) []zap.Field {
 	if fields == nil {

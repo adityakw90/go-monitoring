@@ -93,6 +93,9 @@ func TestNewTracer(t *testing.T) {
 				if tracer.tracer == nil {
 					t.Errorf("NewTracer() tracer is nil")
 				}
+				if tracer.propagator == nil {
+					t.Errorf("NewTracer() propagator is nil")
+				}
 				// Cleanup
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
@@ -182,13 +185,33 @@ func TestTracer_NewSpanFromSpan(t *testing.T) {
 	ctx, parentSpan := tracer.StartSpan(ctx, "parent-operation")
 	defer parentSpan.End()
 
-	_, childSpan := tracer.NewSpanFromSpan(ctx, "child-operation", parentSpan)
+	ctx2, childSpan := tracer.NewSpanFromSpan(ctx, "child-operation", parentSpan)
 	if childSpan == nil {
 		t.Errorf("NewSpanFromSpan() returned nil span")
 	}
 	if !childSpan.SpanContext().IsValid() {
 		t.Errorf("NewSpanFromSpan() returned invalid span context")
 	}
+
+	// Verify parent-child relationship
+	parentCtx := parentSpan.SpanContext()
+	childCtx := childSpan.SpanContext()
+
+	// Child should have the same TraceID as parent
+	if childCtx.TraceID() != parentCtx.TraceID() {
+		t.Errorf("NewSpanFromSpan() child TraceID = %s, want %s", childCtx.TraceID().String(), parentCtx.TraceID().String())
+	}
+
+	// Verify the parent span context is correctly propagated in the returned context
+	retrievedSpan := trace.SpanFromContext(ctx2)
+	if retrievedSpan == nil {
+		t.Errorf("NewSpanFromSpan() context does not contain span")
+	}
+	retrievedCtx := retrievedSpan.SpanContext()
+	if retrievedCtx.TraceID() != parentCtx.TraceID() {
+		t.Errorf("NewSpanFromSpan() retrieved span TraceID = %s, want %s", retrievedCtx.TraceID().String(), parentCtx.TraceID().String())
+	}
+
 	childSpan.End()
 }
 
@@ -338,5 +361,87 @@ func TestTracer_ExtractContext_WithMultipleValues(t *testing.T) {
 	span2 := trace.SpanFromContext(ctx2)
 	if !span2.SpanContext().IsValid() {
 		t.Errorf("ExtractContext() did not extract valid span context with multiple values")
+	}
+}
+
+func TestTracer_MultipleTracersCoexist(t *testing.T) {
+	// Create multiple tracers with different configurations
+	tracer1, err := NewTracer(
+		withTracerServiceName("service-1"),
+		withTracerEnvironment("env-1"),
+	)
+	if err != nil {
+		t.Fatalf("NewTracer() for tracer1 error = %v", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = tracer1.Shutdown(ctx)
+	}()
+
+	tracer2, err := NewTracer(
+		withTracerServiceName("service-2"),
+		withTracerEnvironment("env-2"),
+	)
+	if err != nil {
+		t.Fatalf("NewTracer() for tracer2 error = %v", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = tracer2.Shutdown(ctx)
+	}()
+
+	// Verify both tracers have their own providers and propagators
+	if tracer1.provider == nil {
+		t.Errorf("tracer1.provider is nil")
+	}
+	if tracer1.propagator == nil {
+		t.Errorf("tracer1.propagator is nil")
+	}
+	if tracer2.provider == nil {
+		t.Errorf("tracer2.provider is nil")
+	}
+	if tracer2.propagator == nil {
+		t.Errorf("tracer2.propagator is nil")
+	}
+
+	// Verify they are different instances
+	if tracer1.provider == tracer2.provider {
+		t.Errorf("tracer1 and tracer2 share the same provider instance")
+	}
+
+	// Test that both tracers can create spans independently
+	ctx1 := context.Background()
+	ctx1, span1 := tracer1.StartSpan(ctx1, "span-1")
+	if span1 == nil {
+		t.Errorf("tracer1.StartSpan() returned nil")
+	}
+	span1.End()
+
+	ctx2 := context.Background()
+	ctx2, span2 := tracer2.StartSpan(ctx2, "span-2")
+	if span2 == nil {
+		t.Errorf("tracer2.StartSpan() returned nil")
+	}
+	span2.End()
+
+	// Verify spans have valid contexts
+	if !span1.SpanContext().IsValid() {
+		t.Errorf("span1 has invalid span context")
+	}
+	if !span2.SpanContext().IsValid() {
+		t.Errorf("span2 has invalid span context")
+	}
+
+	// Test that each tracer's propagator works independently
+	md1 := tracer1.InjectContext(ctx1)
+	md2 := tracer2.InjectContext(ctx2)
+
+	if len(md1) == 0 {
+		t.Errorf("tracer1.InjectContext() returned empty metadata")
+	}
+	if len(md2) == 0 {
+		t.Errorf("tracer2.InjectContext() returned empty metadata")
 	}
 }

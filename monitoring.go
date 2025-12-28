@@ -42,6 +42,10 @@ func NewMonitoring(opts ...Option) (*Monitoring, error) {
 		withTracerBatchTimeout(options.TracerBatchTimeout),
 	)
 	if err != nil {
+		// Cleanup logger before returning
+		if logger != nil {
+			_ = logger.Sync() // Ignore cleanup errors when returning initialization error
+		}
 		return nil, fmt.Errorf("failed to initialize tracer: %w", err)
 	}
 
@@ -54,6 +58,13 @@ func NewMonitoring(opts ...Option) (*Monitoring, error) {
 		withMetricInterval(options.MetricInterval),
 	)
 	if err != nil {
+		// Cleanup tracer and logger before returning (in reverse order of initialization)
+		if tracer != nil {
+			_ = tracer.Shutdown(context.Background()) // Ignore cleanup errors when returning initialization error
+		}
+		if logger != nil {
+			_ = logger.Sync() // Ignore cleanup errors when returning initialization error
+		}
 		return nil, fmt.Errorf("failed to initialize metric: %w", err)
 	}
 

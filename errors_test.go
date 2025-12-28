@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -35,11 +36,21 @@ func TestErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Test error message
 			if tt.err.Error() != tt.want {
 				t.Errorf("error message = %q, want %q", tt.err.Error(), tt.want)
 			}
-			if !errors.Is(tt.err, tt.err) {
-				t.Errorf("errors.Is() = false, want true")
+
+			// Test that wrapped error reports the sentinel via errors.Is
+			wrappedErr := fmt.Errorf("operation failed: %w", tt.err)
+			if !errors.Is(wrappedErr, tt.err) {
+				t.Errorf("errors.Is(wrappedErr, sentinel) = false, want true")
+			}
+
+			// Test that unrelated errors return false
+			unrelatedErr := errors.New("unrelated error")
+			if errors.Is(unrelatedErr, tt.err) {
+				t.Errorf("errors.Is(unrelatedErr, sentinel) = true, want false")
 			}
 		})
 	}

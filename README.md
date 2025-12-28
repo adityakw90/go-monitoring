@@ -225,7 +225,7 @@ Supported log levels: `debug`, `info`, `warn`, `error`, `fatal`
 
 ## Requirements
 
-- Go 1.19 or later
+- Go 1.22 or later
 - OpenTelemetry SDK v1.x
 - Zap v1.x
 
