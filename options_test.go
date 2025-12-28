@@ -90,6 +90,12 @@ func TestOptions(t *testing.T) {
 	if opts.MetricProvider != "otlp" {
 		t.Errorf("WithMetricProvider() MetricProvider = %v, want otlp", opts.MetricProvider)
 	}
+	if opts.MetricProviderHost != "localhost" {
+		t.Errorf("WithMetricProvider() MetricProviderHost = %v, want localhost", opts.MetricProviderHost)
+	}
+	if opts.MetricProviderPort != 4318 {
+		t.Errorf("WithMetricProvider() MetricProviderPort = %v, want 4318", opts.MetricProviderPort)
+	}
 
 	WithMetricInterval(30 * time.Second)(opts)
 	if opts.MetricInterval != 30*time.Second {
