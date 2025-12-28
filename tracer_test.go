@@ -76,12 +76,20 @@ func TestNewTracer(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "with invalid sample ratio > 1.0",
+			name: "with sample ratio > 1.0 (uses AlwaysSample)",
 			opts: []TracerOption{
 				withTracerServiceName("test-service"),
 				withTracerSampleRatio(1.5),
 			},
-			wantErr: false, // Should default to AlwaysSample
+			wantErr: false, // Uses AlwaysSample for ratios >= 1.0
+		},
+		{
+			name: "with sample ratio < 0 (uses NeverSample)",
+			opts: []TracerOption{
+				withTracerServiceName("test-service"),
+				withTracerSampleRatio(-0.5),
+			},
+			wantErr: false, // Uses NeverSample for ratios <= 0
 		},
 	}
 

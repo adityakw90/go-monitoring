@@ -147,10 +147,13 @@ func NewTracer(opts ...TracerOption) (*Tracer, error) {
 
 	// Create a sampler with the ratio from config
 	var sampler sdktrace.Sampler
-	if options.SampleRatio > 0 && options.SampleRatio <= 1.0 {
-		sampler = sdktrace.TraceIDRatioBased(options.SampleRatio)
-	} else {
+	switch {
+	case options.SampleRatio <= 0:
+		sampler = sdktrace.NeverSample()
+	case options.SampleRatio >= 1.0:
 		sampler = sdktrace.AlwaysSample()
+	default:
+		sampler = sdktrace.TraceIDRatioBased(options.SampleRatio)
 	}
 
 	tp := sdktrace.NewTracerProvider(
