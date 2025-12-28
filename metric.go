@@ -89,10 +89,9 @@ func NewMetric(opts ...MetricOption) (*Metric, error) {
 	res, err := resource.New(
 		context.Background(),
 		resource.WithAttributes(
-			attribute.String("instance_name", options.InstanceName),
-			attribute.String("instance_host", options.InstanceHost),
-			attribute.String("service", options.ServiceName),
-			attribute.String("environment", options.Environment),
+			semconv.ServiceInstanceIDKey.String(options.InstanceName),
+			semconv.HostNameKey.String(options.InstanceHost),
+			semconv.DeploymentEnvironmentKey.String(options.Environment),
 			semconv.ServiceNameKey.String(options.ServiceName),
 		),
 	)

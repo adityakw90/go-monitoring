@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
@@ -109,10 +108,9 @@ func NewTracer(opts ...TracerOption) (*Tracer, error) {
 	res, err := resource.New(
 		context.Background(),
 		resource.WithAttributes(
-			attribute.String("instance_name", options.InstanceName),
-			attribute.String("instance_host", options.InstanceHost),
-			attribute.String("service", options.ServiceName),
-			attribute.String("environment", options.Environment),
+			semconv.ServiceInstanceIDKey.String(options.InstanceName),
+			semconv.HostNameKey.String(options.InstanceHost),
+			semconv.DeploymentEnvironmentKey.String(options.Environment),
 			semconv.ServiceNameKey.String(options.ServiceName),
 		),
 	)
