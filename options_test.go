@@ -29,6 +29,9 @@ func TestDefaultOptions(t *testing.T) {
 	if opts.MetricInterval != 60*time.Second {
 		t.Errorf("defaultOptions() MetricInterval = %v, want 60s", opts.MetricInterval)
 	}
+	if opts.TracerInsecure != false {
+		t.Errorf("defaultOptions() TracerInsecure = %v, want false", opts.TracerInsecure)
+	}
 }
 
 func TestOptions(t *testing.T) {
@@ -76,6 +79,11 @@ func TestOptions(t *testing.T) {
 	WithTracerBatchTimeout(10 * time.Second)(opts)
 	if opts.TracerBatchTimeout != 10*time.Second {
 		t.Errorf("WithTracerBatchTimeout() TracerBatchTimeout = %v, want 10s", opts.TracerBatchTimeout)
+	}
+
+	WithTracerInsecure(true)(opts)
+	if opts.TracerInsecure != true {
+		t.Errorf("WithTracerInsecure() TracerInsecure = %v, want true", opts.TracerInsecure)
 	}
 
 	WithMetricProvider("otlp", "localhost", 4318)(opts)

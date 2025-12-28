@@ -19,6 +19,7 @@ type Options struct {
 	TracerProviderPort int
 	TracerSampleRatio  float64 // 0.0 to 1.0
 	TracerBatchTimeout time.Duration
+	TracerInsecure     bool // When true, uses insecure (non-TLS) connection for OTLP exporter
 
 	// Metric configuration
 	MetricProvider     string // "stdout", "otlp"
@@ -79,6 +80,14 @@ func WithTracerSampleRatio(ratio float64) Option {
 func WithTracerBatchTimeout(timeout time.Duration) Option {
 	return func(o *Options) {
 		o.TracerBatchTimeout = timeout
+	}
+}
+
+// WithTracerInsecure sets whether to use an insecure (non-TLS) connection for OTLP exporter.
+// When false (default), a secure TLS connection is used. When true, WithInsecure() is used.
+func WithTracerInsecure(insecure bool) Option {
+	return func(o *Options) {
+		o.TracerInsecure = insecure
 	}
 }
 

@@ -40,6 +40,7 @@ func NewMonitoring(opts ...Option) (*Monitoring, error) {
 		withTracerProvider(options.TracerProvider, options.TracerProviderHost, options.TracerProviderPort),
 		withTracerSampleRatio(options.TracerSampleRatio),
 		withTracerBatchTimeout(options.TracerBatchTimeout),
+		withTracerInsecure(options.TracerInsecure),
 	)
 	if err != nil {
 		// Cleanup logger before returning

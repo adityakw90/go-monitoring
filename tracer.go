@@ -35,6 +35,7 @@ type TracerOptions struct {
 	ProviderPort int
 	SampleRatio  float64
 	BatchTimeout time.Duration
+	Insecure     bool
 }
 
 // TracerOption configures TracerOptions.
@@ -85,6 +86,13 @@ func withTracerBatchTimeout(timeout time.Duration) TracerOption {
 	}
 }
 
+// withTracerInsecure sets whether to use an insecure connection for OTLP exporter (internal use).
+func withTracerInsecure(insecure bool) TracerOption {
+	return func(o *TracerOptions) {
+		o.Insecure = insecure
+	}
+}
+
 // NewTracer initializes a new OpenTelemetry tracer with the given options.
 func NewTracer(opts ...TracerOption) (*Tracer, error) {
 	options := &TracerOptions{
@@ -120,13 +128,15 @@ func NewTracer(opts ...TracerOption) (*Tracer, error) {
 			stdouttrace.WithPrettyPrint(),
 		)
 	case "otlp":
-		exporter, err = otlptracegrpc.New(
-			context.Background(),
+		opts := []otlptracegrpc.Option{
 			otlptracegrpc.WithEndpoint(
 				fmt.Sprintf("%s:%d", options.ProviderHost, options.ProviderPort),
 			),
-			otlptracegrpc.WithInsecure(),
-		)
+		}
+		if options.Insecure {
+			opts = append(opts, otlptracegrpc.WithInsecure())
+		}
+		exporter, err = otlptracegrpc.New(context.Background(), opts...)
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrInvalidProvider, options.Provider)
 	}

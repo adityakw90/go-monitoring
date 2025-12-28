@@ -34,10 +34,20 @@ func TestNewTracer(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "with otlp provider",
+			name: "with otlp provider (insecure)",
 			opts: []TracerOption{
 				withTracerServiceName("test-service"),
 				withTracerProvider("otlp", "localhost", 4317),
+				withTracerInsecure(true),
+			},
+			wantErr: false,
+		},
+		{
+			name: "with otlp provider (secure)",
+			opts: []TracerOption{
+				withTracerServiceName("test-service"),
+				withTracerProvider("otlp", "localhost", 4317),
+				withTracerInsecure(false),
 			},
 			wantErr: false,
 		},
