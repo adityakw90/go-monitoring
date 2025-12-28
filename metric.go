@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
@@ -13,6 +12,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"google.golang.org/grpc/credentials"
 )
 
 // Metric wraps OpenTelemetry meter.
@@ -31,6 +31,7 @@ type MetricOptions struct {
 	ProviderHost string
 	ProviderPort int
 	Interval     time.Duration
+	Insecure     bool
 }
 
 // MetricOption configures MetricOptions.
@@ -74,6 +75,13 @@ func withMetricInterval(interval time.Duration) MetricOption {
 	}
 }
 
+// withMetricInsecure sets whether to use an insecure connection for OTLP exporter (internal use).
+func withMetricInsecure(insecure bool) MetricOption {
+	return func(o *MetricOptions) {
+		o.Insecure = insecure
+	}
+}
+
 // NewMetric initializes a new OpenTelemetry metric with the given options.
 func NewMetric(opts ...MetricOption) (*Metric, error) {
 	options := &MetricOptions{
@@ -107,13 +115,17 @@ func NewMetric(opts ...MetricOption) (*Metric, error) {
 			stdoutmetric.WithPrettyPrint(),
 		)
 	case "otlp":
-		exporter, err = otlpmetricgrpc.New(
-			context.Background(),
+		opts := []otlpmetricgrpc.Option{
 			otlpmetricgrpc.WithEndpoint(
 				fmt.Sprintf("%s:%d", options.ProviderHost, options.ProviderPort),
 			),
-			otlpmetricgrpc.WithInsecure(),
-		)
+		}
+		if options.Insecure {
+			opts = append(opts, otlpmetricgrpc.WithInsecure())
+		} else {
+			opts = append(opts, otlpmetricgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+		}
+		exporter, err = otlpmetricgrpc.New(context.Background(), opts...)
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrInvalidProvider, options.Provider)
 	}
@@ -133,12 +145,9 @@ func NewMetric(opts ...MetricOption) (*Metric, error) {
 		),
 	)
 
-	// Set the global meter provider
-	otel.SetMeterProvider(mp)
-
 	return &Metric{
 		provider: mp,
-		meter:    otel.Meter(options.ServiceName),
+		meter:    mp.Meter(options.ServiceName),
 	}, nil
 }
 

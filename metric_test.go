@@ -54,6 +54,24 @@ func TestNewMetric(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "with insecure option",
+			opts: []MetricOption{
+				withMetricServiceName("test-service"),
+				withMetricProvider("otlp", "localhost", 4318),
+				withMetricInsecure(true),
+			},
+			wantErr: false,
+		},
+		{
+			name: "with secure option (default)",
+			opts: []MetricOption{
+				withMetricServiceName("test-service"),
+				withMetricProvider("otlp", "localhost", 4318),
+				withMetricInsecure(false),
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -456,5 +474,70 @@ func TestMetric_MultipleHistograms(t *testing.T) {
 	// Verify they are different instances
 	if histogram1 == histogram2 {
 		t.Errorf("CreateHistogram() returned same instance for different histograms")
+	}
+}
+
+func TestMetric_MultipleInstancesCoexist(t *testing.T) {
+	// Test that multiple Metric instances can coexist without global state conflicts
+	// This verifies that we removed global state mutations
+	metric1, err := NewMetric(
+		withMetricServiceName("service-1"),
+		withMetricProvider("stdout", "", 0),
+	)
+	if err != nil {
+		t.Fatalf("NewMetric() error = %v", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = metric1.Shutdown(ctx)
+	}()
+
+	metric2, err := NewMetric(
+		withMetricServiceName("service-2"),
+		withMetricProvider("stdout", "", 0),
+	)
+	if err != nil {
+		t.Fatalf("NewMetric() error = %v", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = metric2.Shutdown(ctx)
+	}()
+
+	// Verify they are different instances
+	if metric1 == metric2 {
+		t.Errorf("NewMetric() returned same instance for different metrics")
+	}
+
+	// Verify they have different providers
+	if metric1.provider == metric2.provider {
+		t.Errorf("NewMetric() returned same provider for different metrics")
+	}
+
+	// Verify they have different meters
+	if metric1.meter == metric2.meter {
+		t.Errorf("NewMetric() returned same meter for different metrics")
+	}
+
+	// Create counters from both instances and verify they work independently
+	counter1, err := metric1.CreateCounter("counter1", "1", "Counter from metric1")
+	if err != nil {
+		t.Fatalf("metric1.CreateCounter() error = %v", err)
+	}
+
+	counter2, err := metric2.CreateCounter("counter2", "1", "Counter from metric2")
+	if err != nil {
+		t.Fatalf("metric2.CreateCounter() error = %v", err)
+	}
+
+	ctx := context.Background()
+	metric1.RecordCounter(ctx, counter1, 1)
+	metric2.RecordCounter(ctx, counter2, 2)
+
+	// Verify counters are different
+	if counter1 == counter2 {
+		t.Errorf("CreateCounter() returned same instance from different metrics")
 	}
 }

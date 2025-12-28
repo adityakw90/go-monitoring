@@ -26,6 +26,7 @@ type Options struct {
 	MetricProviderHost string
 	MetricProviderPort int
 	MetricInterval     time.Duration
+	MetricInsecure     bool // When true, uses insecure (non-TLS) connection for OTLP exporter
 }
 
 // Option is a function that configures Options.
@@ -104,6 +105,14 @@ func WithMetricProvider(provider, host string, port int) Option {
 func WithMetricInterval(interval time.Duration) Option {
 	return func(o *Options) {
 		o.MetricInterval = interval
+	}
+}
+
+// WithMetricInsecure sets whether to use an insecure (non-TLS) connection for OTLP exporter.
+// When false (default), a secure TLS connection is used. When true, WithInsecure() is used.
+func WithMetricInsecure(insecure bool) Option {
+	return func(o *Options) {
+		o.MetricInsecure = insecure
 	}
 }
 

@@ -32,6 +32,9 @@ func TestDefaultOptions(t *testing.T) {
 	if opts.TracerInsecure != false {
 		t.Errorf("defaultOptions() TracerInsecure = %v, want false", opts.TracerInsecure)
 	}
+	if opts.MetricInsecure != false {
+		t.Errorf("defaultOptions() MetricInsecure = %v, want false", opts.MetricInsecure)
+	}
 }
 
 func TestOptions(t *testing.T) {
@@ -100,5 +103,10 @@ func TestOptions(t *testing.T) {
 	WithMetricInterval(30 * time.Second)(opts)
 	if opts.MetricInterval != 30*time.Second {
 		t.Errorf("WithMetricInterval() MetricInterval = %v, want 30s", opts.MetricInterval)
+	}
+
+	WithMetricInsecure(true)(opts)
+	if opts.MetricInsecure != true {
+		t.Errorf("WithMetricInsecure() MetricInsecure = %v, want true", opts.MetricInsecure)
 	}
 }

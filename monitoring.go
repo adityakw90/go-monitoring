@@ -57,6 +57,7 @@ func NewMonitoring(opts ...Option) (*Monitoring, error) {
 		withMetricInstance(options.InstanceName, options.InstanceHost),
 		withMetricProvider(options.MetricProvider, options.MetricProviderHost, options.MetricProviderPort),
 		withMetricInterval(options.MetricInterval),
+		withMetricInsecure(options.MetricInsecure),
 	)
 	if err != nil {
 		// Cleanup tracer and logger before returning (in reverse order of initialization)
