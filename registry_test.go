@@ -1,6 +1,9 @@
 package monitoring
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestMonitoring_NewMonitoring(t *testing.T) {
 	tests := []struct {
@@ -40,6 +43,20 @@ func TestMonitoring_NewMonitoring(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewMonitoring() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if monitoring != nil {
+				// Cleanup monitoring resources after test
+				defer func() {
+					if monitoring.Tracer != nil {
+						_ = monitoring.Tracer.Shutdown(context.Background())
+					}
+					if monitoring.Metric != nil {
+						_ = monitoring.Metric.Shutdown(context.Background())
+					}
+					if monitoring.Logger != nil {
+						_ = monitoring.Logger.Sync()
+					}
+				}()
 			}
 			if !tt.wantErr {
 				if monitoring == nil {
