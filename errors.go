@@ -12,12 +12,6 @@ import (
 var (
 	// ErrServiceNameRequired is returned when service name is not provided.
 	ErrServiceNameRequired = errors.New("service name is required")
-
-	// ErrInvalidLogLevel is returned when an invalid log level is provided.
-	ErrInvalidLogLevel = errors.New("invalid log level")
-
-	// ErrInvalidProvider is returned when an invalid provider type is specified.
-	ErrInvalidProvider = errors.New("invalid provider")
 )
 
 // re-export errors from internal packages
