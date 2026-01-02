@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"google.golang.org/grpc/credentials"
 )
 
 // NewTracer initializes a new OpenTelemetry tracer with the given options.
@@ -76,6 +77,8 @@ func NewTracer(opts ...Option) (Tracer, error) {
 		}
 		if options.Insecure {
 			opts = append(opts, otlptracegrpc.WithInsecure())
+		} else {
+			opts = append(opts, otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
 		}
 		exporter, err = otlptracegrpc.New(context.Background(), opts...)
 	default:
