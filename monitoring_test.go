@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestNewMonitoring(t *testing.T) {
+func TestMonitoring_NewMonitoring(t *testing.T) {
 	tests := []struct {
 		name    string
 		opts    []Option

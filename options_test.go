@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestDefaultOptions(t *testing.T) {
+func TestMonitoring_DefaultOptions(t *testing.T) {
 	opts := defaultOptions()
 
 	if opts.Environment != "development" {
@@ -37,7 +37,7 @@ func TestDefaultOptions(t *testing.T) {
 	}
 }
 
-func TestOptions(t *testing.T) {
+func TestMonitoring_Options(t *testing.T) {
 	opts := defaultOptions()
 
 	WithServiceName("test-service")(opts)

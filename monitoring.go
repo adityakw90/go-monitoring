@@ -3,14 +3,18 @@ package monitoring
 import (
 	"context"
 	"fmt"
+
+	"github.com/adityakw90/go-monitoring/internal/logger"
+	"github.com/adityakw90/go-monitoring/internal/metric"
+	"github.com/adityakw90/go-monitoring/internal/tracer"
 )
 
 // Monitoring contains all observability components in a single unified structure.
 // It provides access to logging, tracing, and metrics functionality.
 type Monitoring struct {
-	Logger *Logger // Logger provides structured logging capabilities.
-	Tracer *Tracer // Tracer provides distributed tracing capabilities.
-	Metric *Metric // Metric provides metrics collection capabilities.
+	Logger Logger // Logger provides structured logging capabilities.
+	Tracer Tracer // Tracer provides distributed tracing capabilities.
+	Metric Metric // Metric provides metrics collection capabilities.
 }
 
 // NewMonitoring initializes all monitoring components (Logger, Tracer, Metric) with the given options.
@@ -66,53 +70,53 @@ func NewMonitoring(opts ...Option) (*Monitoring, error) {
 	}
 
 	// Initialize logger
-	logger, err := NewLogger(withLoggerLevel(options.LoggerLevel))
+	loggerInstance, err := logger.NewLogger(logger.WithLevel(options.LoggerLevel))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
 	// Initialize tracer
-	tracer, err := NewTracer(
-		withTracerServiceName(options.ServiceName),
-		withTracerEnvironment(options.Environment),
-		withTracerInstance(options.InstanceName, options.InstanceHost),
-		withTracerProvider(options.TracerProvider, options.TracerProviderHost, options.TracerProviderPort),
-		withTracerSampleRatio(options.TracerSampleRatio),
-		withTracerBatchTimeout(options.TracerBatchTimeout),
-		withTracerInsecure(options.TracerInsecure),
+	tracerInstance, err := tracer.NewTracer(
+		tracer.WithServiceName(options.ServiceName),
+		tracer.WithEnvironment(options.Environment),
+		tracer.WithInstance(options.InstanceName, options.InstanceHost),
+		tracer.WithProvider(options.TracerProvider, options.TracerProviderHost, options.TracerProviderPort),
+		tracer.WithSampleRatio(options.TracerSampleRatio),
+		tracer.WithBatchTimeout(options.TracerBatchTimeout),
+		tracer.WithInsecure(options.TracerInsecure),
 	)
 	if err != nil {
 		// Cleanup logger before returning
-		if logger != nil {
-			_ = logger.Sync() // Ignore cleanup errors when returning initialization error
+		if loggerInstance != nil {
+			_ = loggerInstance.Sync() // Ignore cleanup errors when returning initialization error
 		}
 		return nil, fmt.Errorf("failed to initialize tracer: %w", err)
 	}
 
 	// Initialize metric
-	metric, err := NewMetric(
-		withMetricServiceName(options.ServiceName),
-		withMetricEnvironment(options.Environment),
-		withMetricInstance(options.InstanceName, options.InstanceHost),
-		withMetricProvider(options.MetricProvider, options.MetricProviderHost, options.MetricProviderPort),
-		withMetricInterval(options.MetricInterval),
-		withMetricInsecure(options.MetricInsecure),
+	metricInstance, err := metric.NewMetric(
+		metric.WithServiceName(options.ServiceName),
+		metric.WithEnvironment(options.Environment),
+		metric.WithInstance(options.InstanceName, options.InstanceHost),
+		metric.WithProvider(options.MetricProvider, options.MetricProviderHost, options.MetricProviderPort),
+		metric.WithInterval(options.MetricInterval),
+		metric.WithInsecure(options.MetricInsecure),
 	)
 	if err != nil {
 		// Cleanup tracer and logger before returning (in reverse order of initialization)
-		if tracer != nil {
-			_ = tracer.Shutdown(context.Background()) // Ignore cleanup errors when returning initialization error
+		if tracerInstance != nil {
+			_ = tracerInstance.Shutdown(context.Background()) // Ignore cleanup errors when returning initialization error
 		}
-		if logger != nil {
-			_ = logger.Sync() // Ignore cleanup errors when returning initialization error
+		if loggerInstance != nil {
+			_ = loggerInstance.Sync() // Ignore cleanup errors when returning initialization error
 		}
 		return nil, fmt.Errorf("failed to initialize metric: %w", err)
 	}
 
 	return &Monitoring{
-		Logger: logger,
-		Tracer: tracer,
-		Metric: metric,
+		Logger: loggerInstance,
+		Tracer: tracerInstance,
+		Metric: metricInstance,
 	}, nil
 }
 

@@ -1,6 +1,12 @@
 package monitoring
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/adityakw90/go-monitoring/internal/logger"
+	"github.com/adityakw90/go-monitoring/internal/metric"
+	"github.com/adityakw90/go-monitoring/internal/tracer"
+)
 
 // Error definitions for the monitoring library.
 var (
@@ -12,7 +18,11 @@ var (
 
 	// ErrInvalidProvider is returned when an invalid provider type is specified.
 	ErrInvalidProvider = errors.New("invalid provider")
+)
 
-	// ErrInvalidSampleRatio is returned when sample ratio is not between 0 and 1.
-	ErrInvalidSampleRatio = errors.New("sample ratio must be between 0 and 1")
+// re-export errors from internal packages
+var (
+	ErrMetricInvalidProvider = metric.ErrInvalidProvider
+	ErrTracerInvalidProvider = tracer.ErrInvalidProvider
+	ErrLoggerInvalidLogLevel = logger.ErrInvalidLogLevel
 )
