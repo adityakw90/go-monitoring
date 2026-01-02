@@ -19,21 +19,16 @@ type logger struct {
 // Parameters:
 //   - level: The new log level ("debug", "info", "warn", "error", "fatal")
 //
-// Returns an error if the log level is invalid (defaults to INFO in that case).
-//
 // Example:
 //
-//	if err := logger.SetLogLevel("debug"); err != nil {
-//	    log.Printf("Failed to set log level: %v", err)
-//	}
-func (l *logger) SetLogLevel(level string) error {
+//	logger.SetLogLevel("debug")
+func (l *logger) SetLogLevel(level string) {
 	logLevel, err := zapcore.ParseLevel(level)
 	if err != nil {
 		l.Info(fmt.Sprintf("Invalid log level: %s, defaulting to INFO", level), nil)
 		logLevel = zapcore.InfoLevel
 	}
 	l.level.SetLevel(logLevel)
-	return nil
 }
 
 // Debug logs a debug-level message with optional structured fields.

@@ -4,7 +4,7 @@ import "go.opentelemetry.io/otel/trace"
 
 // Logger defines the contract for logging operations.
 type Logger interface {
-	SetLogLevel(level string) error
+	SetLogLevel(level string)
 	Debug(message string, fields map[string]interface{})
 	Info(message string, fields map[string]interface{})
 	Warn(message string, fields map[string]interface{})
