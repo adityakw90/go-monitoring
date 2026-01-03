@@ -1,6 +1,13 @@
 # Go Monitoring Library
 
+[![Go Version](https://img.shields.io/badge/go-1.22+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A comprehensive observability library for Go that provides structured logging, distributed tracing, and metrics collection. This library consolidates monitoring functionality into a single, reusable package.
+
+**Version**: v0.1.0
+
+> **⚠️ Pre-1.0.0 Notice**: This library is currently in version 0.x.x. **Backward compatibility is not guaranteed** until version 1.0.0 is released. Breaking changes may occur in minor version updates (0.x → 0.y). Please pin your dependency to a specific version or use a dependency management tool that locks versions.
 
 ## Features
 
@@ -16,6 +23,11 @@ A comprehensive observability library for Go that provides structured logging, d
 ```bash
 go get github.com/adityakw90/go-monitoring
 ```
+
+> **⚠️ Version Compatibility**: For production use before v1.0.0, pin to a specific version:
+> ```bash
+> go get github.com/adityakw90/go-monitoring@v0.1.0
+> ```
 
 ## Quick Start
 
@@ -85,13 +97,13 @@ logger, err := monitoring.NewLogger(
 
 // Tracer
 tracer, err := monitoring.NewTracer(
-    monitoring.WithTracerServiceName("my-service"),
+    monitoring.WithServiceName("my-service"),
     monitoring.WithTracerProvider("stdout", "", 0),
 )
 
 // Metric
 metric, err := monitoring.NewMetric(
-    monitoring.WithMetricServiceName("my-service"),
+    monitoring.WithServiceName("my-service"),
     monitoring.WithMetricProvider("stdout", "", 0),
 )
 ```
@@ -126,7 +138,7 @@ The Logger provides structured logging with Zap.
 - `Warn(message string, fields map[string]interface{})`
 - `Error(message string, fields map[string]interface{})`
 - `Fatal(message string, fields map[string]interface{})`
-- `SetLogLevel(level string) error` - Change log level at runtime
+- `SetLogLevel(level string)` - Change log level at runtime (invalid levels default to INFO)
 - `WithSpanContext(span trace.SpanContext) *Logger` - Add trace context to logs
 
 ### Tracer
@@ -223,16 +235,78 @@ Supported log levels: `debug`, `info`, `warn`, `error`, `fatal`
 - `stdout` - Output metrics to stdout (for development)
 - `otlp` - Send metrics via OTLP/gRPC
 
+## Troubleshooting
+
+### Common Issues
+
+#### Traces not appearing in OTLP collector
+- **Check connection**: Ensure the OTLP collector is running and accessible
+- **Verify endpoint**: Check that the host and port are correct
+- **Check TLS**: If using TLS, ensure certificates are properly configured
+- **Sample ratio**: Verify `TracerSampleRatio` is not set to 0.0
+
+#### Metrics not exporting
+- **Check interval**: Metrics are exported periodically (default: 60s). Wait for the interval to pass
+- **Verify provider**: Ensure the metric provider is correctly configured
+- **Check OTLP connection**: Same as trace troubleshooting above
+
+#### Logs not appearing in file
+- **File permissions**: Ensure the application has write permissions to the log file path
+- **Path validation**: Verify the file path is valid and the directory exists
+- **Log level**: Check that the log level allows the messages you're trying to log
+
+#### Invalid log level error
+- **Valid levels**: Use only `debug`, `info`, `warn`, `error`, or `fatal` (case-insensitive)
+- **SetLogLevel behavior**: Invalid levels in `SetLogLevel` will default to INFO and log a warning
+
+### Performance Considerations
+
+- **High-frequency logging**: For applications with very high log volume, consider using async logging or adjusting log levels
+- **Trace sampling**: Use `TracerSampleRatio` < 1.0 in production to reduce overhead
+- **Metric intervals**: Adjust `MetricInterval` based on your needs (shorter = more real-time but higher overhead)
+
 ## Requirements
 
 - Go 1.22 or later
-- OpenTelemetry SDK v1.x
-- Zap v1.x
+- OpenTelemetry SDK v1.34.0
+- Zap v1.21.0
+
+## Version History
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and changes.
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Quick Contribution Guide
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass (`make test`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/adityakw90/go-monitoring.git
+cd go-monitoring
+
+# Run tests
+make test
+
+# Run tests with coverage
+make test-cover
+
+# Clean test cache
+make test-clean
+```
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-[Contributing guidelines TBD]
