@@ -35,8 +35,6 @@ var (
 	ErrMetricIntervalInvalid      = metric.ErrIntervalInvalid
 )
 
-// parseError maps internal package errors to public API errors.
-// It checks for known sentinel errors from internal packages and returns the corresponding
 // parseError maps known internal sentinel errors to the package's public API error aliases.
 // If err is nil it returns an error formatted as "<message>: unknown error".
 // If err matches a recognized internal sentinel, it returns the corresponding exported error alias.

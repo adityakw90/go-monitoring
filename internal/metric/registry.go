@@ -13,27 +13,6 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// NewMetric initializes a new OpenTelemetry metric with the given options.
-//
-// It creates a meter provider with the specified exporter (stdout or OTLP),
-// configures periodic metric export, and sets up resource attributes
-// for service identification.
-//
-// Default configuration:
-//   - Provider: "stdout"
-//   - Interval: 60 seconds
-//
-// Returns an error if:
-//   - The provider type is invalid (not "stdout" or "otlp")
-//   - Resource creation fails
-//   - Exporter creation fails
-//
-// Example:
-//
-//	metric, err := NewMetric(
-//	    WithServiceName("my-service"),
-//	    WithProvider("otlp", "localhost", 4318),
-//	    WithInterval(30*time.Second),
 // NewMetric creates and returns a Metric configured according to the provided Options.
 // It builds an OpenTelemetry MeterProvider backed by a PeriodicReader and an exporter
 // selected by the Options.Provider (supported: "stdout", "otlp"), and attaches a Resource

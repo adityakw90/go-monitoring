@@ -83,17 +83,6 @@ func WithInstance(name, host string) Option {
 	}
 }
 
-// WithLoggerLevel sets the logger level.
-// Only log messages at or above this level will be output.
-//
-// Parameters:
-//   - level: The log level ("debug", "info", "warn", "error", "fatal")
-//
-// Example:
-//
-//	mon, err := NewMonitoring(
-//	    WithServiceName("my-service"),
-//	    WithLoggerLevel("debug"),
 // WithLoggerLevel returns an Option that sets the logger minimum level for monitoring
 // (e.g., "debug", "info", "warn", "error", "fatal").
 func WithLoggerLevel(level string) Option {
@@ -102,17 +91,6 @@ func WithLoggerLevel(level string) Option {
 	}
 }
 
-// WithLoggerOutputPath sets the logger output path.
-// Logs will be written to the specified file path. If not set, logs will be written to stdout.
-//
-// Parameters:
-//   - path: The file path where logs will be written (e.g., "/var/log/app.log", "./logs/app.log")
-//
-// Example:
-//
-//	mon, err := NewMonitoring(
-//	    WithServiceName("my-service"),
-//	    WithLoggerOutputPath("/var/log/app.log"),
 // WithLoggerOutputPath returns an Option that sets the file path used for log output.
 // If the provided path is empty, logs will be written to stdout.
 func WithLoggerOutputPath(path string) Option {
