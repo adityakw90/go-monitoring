@@ -31,9 +31,9 @@ import (
 // Example:
 //
 //	metric, err := NewMetric(
-//	    withMetricServiceName("my-service"),
-//	    withMetricProvider("otlp", "localhost", 4318),
-//	    withMetricInterval(30*time.Second),
+//	    WithServiceName("my-service"),
+//	    WithProvider("otlp", "localhost", 4318),
+//	    WithInterval(30*time.Second),
 //	)
 func NewMetric(opts ...Option) (Metric, error) {
 	options := &Options{
