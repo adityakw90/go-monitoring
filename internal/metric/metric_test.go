@@ -1,4 +1,4 @@
-package monitoring
+package metric
 
 import (
 	"context"
@@ -8,108 +8,15 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-func TestNewMetric(t *testing.T) {
-	tests := []struct {
-		name    string
-		opts    []MetricOption
-		wantErr bool
-	}{
-		{
-			name:    "default metric with stdout",
-			opts:    []MetricOption{withMetricServiceName("test-service")},
-			wantErr: false,
-		},
-		{
-			name: "with all options",
-			opts: []MetricOption{
-				withMetricServiceName("test-service"),
-				withMetricEnvironment("test"),
-				withMetricInstance("instance-1", "localhost"),
-				withMetricProvider("stdout", "", 0),
-				withMetricInterval(30 * time.Second),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with otlp provider",
-			opts: []MetricOption{
-				withMetricServiceName("test-service"),
-				withMetricProvider("otlp", "localhost", 4318),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with invalid provider",
-			opts: []MetricOption{
-				withMetricServiceName("test-service"),
-				withMetricProvider("invalid", "", 0),
-			},
-			wantErr: true,
-		},
-		{
-			name: "with custom interval",
-			opts: []MetricOption{
-				withMetricServiceName("test-service"),
-				withMetricInterval(10 * time.Second),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with insecure option",
-			opts: []MetricOption{
-				withMetricServiceName("test-service"),
-				withMetricProvider("otlp", "localhost", 4318),
-				withMetricInsecure(true),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with secure option (default)",
-			opts: []MetricOption{
-				withMetricServiceName("test-service"),
-				withMetricProvider("otlp", "localhost", 4318),
-				withMetricInsecure(false),
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			metric, err := NewMetric(tt.opts...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewMetric() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr {
-				if metric == nil {
-					t.Errorf("NewMetric() returned nil")
-					return
-				}
-				if metric.provider == nil {
-					t.Errorf("NewMetric() provider is nil")
-				}
-				if metric.meter == nil {
-					t.Errorf("NewMetric() meter is nil")
-				}
-				// Cleanup
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				_ = metric.Shutdown(ctx)
-			}
-		})
-	}
-}
-
-func TestMetric_CreateCounter(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_CreateCounter(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
 	tests := []struct {
@@ -144,7 +51,7 @@ func TestMetric_CreateCounter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counter, err := m.CreateCounter(tt.counterName, tt.unit, tt.description)
+			counter, err := metricInstance.CreateCounter(tt.counterName, tt.unit, tt.description)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateCounter() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -156,18 +63,18 @@ func TestMetric_CreateCounter(t *testing.T) {
 	}
 }
 
-func TestMetric_RecordCounter(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_RecordCounter(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
-	counter, err := m.CreateCounter("test_counter", "1", "Test counter")
+	counter, err := metricInstance.CreateCounter("test_counter", "1", "Test counter")
 	if err != nil {
 		t.Fatalf("CreateCounter() error = %v", err)
 	}
@@ -175,30 +82,30 @@ func TestMetric_RecordCounter(t *testing.T) {
 	ctx := context.Background()
 
 	// Test recording without labels
-	m.RecordCounter(ctx, counter, 1)
+	metricInstance.RecordCounter(ctx, counter, 1)
 
 	// Test recording with labels
-	m.RecordCounter(ctx, counter, 1,
+	metricInstance.RecordCounter(ctx, counter, 1,
 		attribute.String("method", "GET"),
 		attribute.String("status", "200"),
 	)
 
 	// Test recording with multiple values
-	m.RecordCounter(ctx, counter, 5,
+	metricInstance.RecordCounter(ctx, counter, 5,
 		attribute.String("method", "POST"),
 		attribute.Int("code", 201),
 	)
 }
 
-func TestMetric_CreateHistogram(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_CreateHistogram(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
 	tests := []struct {
@@ -233,7 +140,7 @@ func TestMetric_CreateHistogram(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			histogram, err := m.CreateHistogram(tt.histogramName, tt.unit, tt.description)
+			histogram, err := metricInstance.CreateHistogram(tt.histogramName, tt.unit, tt.description)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateHistogram() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -245,18 +152,18 @@ func TestMetric_CreateHistogram(t *testing.T) {
 	}
 }
 
-func TestMetric_RecordHistogram(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_RecordHistogram(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
-	histogram, err := m.CreateHistogram("test_histogram", "ms", "Test histogram")
+	histogram, err := metricInstance.CreateHistogram("test_histogram", "ms", "Test histogram")
 	if err != nil {
 		t.Fatalf("CreateHistogram() error = %v", err)
 	}
@@ -264,39 +171,39 @@ func TestMetric_RecordHistogram(t *testing.T) {
 	ctx := context.Background()
 
 	// Test recording without labels
-	m.RecordHistogram(ctx, histogram, 100)
+	metricInstance.RecordHistogram(ctx, histogram, 100)
 
 	// Test recording with labels
-	m.RecordHistogram(ctx, histogram, 150,
+	metricInstance.RecordHistogram(ctx, histogram, 150,
 		attribute.String("method", "GET"),
 		attribute.String("endpoint", "/api/users"),
 	)
 
 	// Test recording with different values
-	m.RecordHistogram(ctx, histogram, 200,
+	metricInstance.RecordHistogram(ctx, histogram, 200,
 		attribute.String("method", "POST"),
 		attribute.Int("status", 201),
 	)
 
 	// Test recording zero value
-	m.RecordHistogram(ctx, histogram, 0)
+	metricInstance.RecordHistogram(ctx, histogram, 0)
 
 	// Test recording large value
-	m.RecordHistogram(ctx, histogram, 999999)
+	metricInstance.RecordHistogram(ctx, histogram, 999999)
 }
 
-func TestMetric_CreateAttributeInt(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_CreateAttributeInt(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
-	attr := m.CreateAttributeInt("test_key", 42)
+	attr := metricInstance.CreateAttributeInt("test_key", 42)
 	if attr.Key != "test_key" {
 		t.Errorf("CreateAttributeInt() key = %v, want test_key", attr.Key)
 	}
@@ -305,30 +212,30 @@ func TestMetric_CreateAttributeInt(t *testing.T) {
 	}
 
 	// Test with zero
-	attrZero := m.CreateAttributeInt("zero", 0)
+	attrZero := metricInstance.CreateAttributeInt("zero", 0)
 	if attrZero.Value.AsInt64() != 0 {
 		t.Errorf("CreateAttributeInt() zero value = %v, want 0", attrZero.Value.AsInt64())
 	}
 
 	// Test with negative
-	attrNeg := m.CreateAttributeInt("negative", -10)
+	attrNeg := metricInstance.CreateAttributeInt("negative", -10)
 	if attrNeg.Value.AsInt64() != -10 {
 		t.Errorf("CreateAttributeInt() negative value = %v, want -10", attrNeg.Value.AsInt64())
 	}
 }
 
-func TestMetric_CreateAttributeString(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_CreateAttributeString(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
-	attr := m.CreateAttributeString("test_key", "test_value")
+	attr := metricInstance.CreateAttributeString("test_key", "test_value")
 	if attr.Key != "test_key" {
 		t.Errorf("CreateAttributeString() key = %v, want test_key", attr.Key)
 	}
@@ -337,20 +244,20 @@ func TestMetric_CreateAttributeString(t *testing.T) {
 	}
 
 	// Test with empty string
-	attrEmpty := m.CreateAttributeString("empty", "")
+	attrEmpty := metricInstance.CreateAttributeString("empty", "")
 	if attrEmpty.Value.AsString() != "" {
 		t.Errorf("CreateAttributeString() empty value = %v, want empty string", attrEmpty.Value.AsString())
 	}
 
 	// Test with special characters
-	attrSpecial := m.CreateAttributeString("special", "test-value_123")
+	attrSpecial := metricInstance.CreateAttributeString("special", "test-value_123")
 	if attrSpecial.Value.AsString() != "test-value_123" {
 		t.Errorf("CreateAttributeString() special value = %v, want test-value_123", attrSpecial.Value.AsString())
 	}
 }
 
-func TestMetric_Shutdown(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_Shutdown(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
@@ -358,33 +265,33 @@ func TestMetric_Shutdown(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := m.Shutdown(ctx); err != nil {
+	if err := metricInstance.Shutdown(ctx); err != nil {
 		t.Errorf("Shutdown() error = %v", err)
 	}
 
 	// Second shutdown may return an error (reader is shutdown)
 	// This is expected behavior from OpenTelemetry
-	_ = m.Shutdown(ctx)
+	_ = metricInstance.Shutdown(ctx)
 }
 
-func TestMetric_Integration(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_Integration(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
 	// Create counter and histogram
-	counter, err := m.CreateCounter("requests_total", "1", "Total requests")
+	counter, err := metricInstance.CreateCounter("requests_total", "1", "Total requests")
 	if err != nil {
 		t.Fatalf("CreateCounter() error = %v", err)
 	}
 
-	histogram, err := m.CreateHistogram("request_duration_ms", "ms", "Request duration")
+	histogram, err := metricInstance.CreateHistogram("request_duration_ms", "ms", "Request duration")
 	if err != nil {
 		t.Fatalf("CreateHistogram() error = %v", err)
 	}
@@ -392,52 +299,52 @@ func TestMetric_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	// Record metrics with attributes
-	m.RecordCounter(ctx, counter, 1,
-		m.CreateAttributeString("method", "GET"),
-		m.CreateAttributeString("status", "200"),
+	metricInstance.RecordCounter(ctx, counter, 1,
+		metricInstance.CreateAttributeString("method", "GET"),
+		metricInstance.CreateAttributeString("status", "200"),
 	)
 
-	m.RecordHistogram(ctx, histogram, 150,
-		m.CreateAttributeString("method", "GET"),
-		m.CreateAttributeInt("status_code", 200),
+	metricInstance.RecordHistogram(ctx, histogram, 150,
+		metricInstance.CreateAttributeString("method", "GET"),
+		metricInstance.CreateAttributeInt("status_code", 200),
 	)
 
 	// Record multiple times
 	for i := 0; i < 10; i++ {
-		m.RecordCounter(ctx, counter, 1,
-			m.CreateAttributeString("method", "POST"),
+		metricInstance.RecordCounter(ctx, counter, 1,
+			metricInstance.CreateAttributeString("method", "POST"),
 		)
-		m.RecordHistogram(ctx, histogram, int64(100+i*10),
-			m.CreateAttributeString("method", "POST"),
+		metricInstance.RecordHistogram(ctx, histogram, int64(100+i*10),
+			metricInstance.CreateAttributeString("method", "POST"),
 		)
 	}
 }
 
-func TestMetric_MultipleCounters(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_MultipleCounters(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
 	// Create multiple counters
-	counter1, err := m.CreateCounter("counter1", "1", "First counter")
+	counter1, err := metricInstance.CreateCounter("counter1", "1", "First counter")
 	if err != nil {
 		t.Fatalf("CreateCounter() error = %v", err)
 	}
 
-	counter2, err := m.CreateCounter("counter2", "1", "Second counter")
+	counter2, err := metricInstance.CreateCounter("counter2", "1", "Second counter")
 	if err != nil {
 		t.Fatalf("CreateCounter() error = %v", err)
 	}
 
 	ctx := context.Background()
-	m.RecordCounter(ctx, counter1, 1)
-	m.RecordCounter(ctx, counter2, 2)
+	metricInstance.RecordCounter(ctx, counter1, 1)
+	metricInstance.RecordCounter(ctx, counter2, 2)
 
 	// Verify they are different instances
 	if counter1 == counter2 {
@@ -445,31 +352,31 @@ func TestMetric_MultipleCounters(t *testing.T) {
 	}
 }
 
-func TestMetric_MultipleHistograms(t *testing.T) {
-	m, err := NewMetric(withMetricServiceName("test-service"))
+func TestMetric_Metric_MultipleHistograms(t *testing.T) {
+	metricInstance, err := NewMetric(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
 	}
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = m.Shutdown(ctx)
+		_ = metricInstance.Shutdown(ctx)
 	}()
 
 	// Create multiple histograms
-	histogram1, err := m.CreateHistogram("histogram1", "ms", "First histogram")
+	histogram1, err := metricInstance.CreateHistogram("histogram1", "ms", "First histogram")
 	if err != nil {
 		t.Fatalf("CreateHistogram() error = %v", err)
 	}
 
-	histogram2, err := m.CreateHistogram("histogram2", "s", "Second histogram")
+	histogram2, err := metricInstance.CreateHistogram("histogram2", "s", "Second histogram")
 	if err != nil {
 		t.Fatalf("CreateHistogram() error = %v", err)
 	}
 
 	ctx := context.Background()
-	m.RecordHistogram(ctx, histogram1, 100)
-	m.RecordHistogram(ctx, histogram2, 200)
+	metricInstance.RecordHistogram(ctx, histogram1, 100)
+	metricInstance.RecordHistogram(ctx, histogram2, 200)
 
 	// Verify they are different instances
 	if histogram1 == histogram2 {
@@ -477,12 +384,12 @@ func TestMetric_MultipleHistograms(t *testing.T) {
 	}
 }
 
-func TestMetric_MultipleInstancesCoexist(t *testing.T) {
+func TestMetric_Metric_MultipleInstancesCoexist(t *testing.T) {
 	// Test that multiple Metric instances can coexist without global state conflicts
 	// This verifies that we removed global state mutations
-	metric1, err := NewMetric(
-		withMetricServiceName("service-1"),
-		withMetricProvider("stdout", "", 0),
+	metricInstance1, err := NewMetric(
+		WithServiceName("service-1"),
+		WithProvider("stdout", "", 0),
 	)
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
@@ -490,12 +397,12 @@ func TestMetric_MultipleInstancesCoexist(t *testing.T) {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = metric1.Shutdown(ctx)
+		_ = metricInstance1.Shutdown(ctx)
 	}()
 
-	metric2, err := NewMetric(
-		withMetricServiceName("service-2"),
-		withMetricProvider("stdout", "", 0),
+	metricInstance2, err := NewMetric(
+		WithServiceName("service-2"),
+		WithProvider("stdout", "", 0),
 	)
 	if err != nil {
 		t.Fatalf("NewMetric() error = %v", err)
@@ -503,38 +410,38 @@ func TestMetric_MultipleInstancesCoexist(t *testing.T) {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = metric2.Shutdown(ctx)
+		_ = metricInstance2.Shutdown(ctx)
 	}()
 
 	// Verify they are different instances
-	if metric1 == metric2 {
+	if metricInstance1 == metricInstance2 {
 		t.Errorf("NewMetric() returned same instance for different metrics")
 	}
 
 	// Verify they have different providers
-	if metric1.provider == metric2.provider {
+	if metricInstance1.(*metric).provider == metricInstance2.(*metric).provider {
 		t.Errorf("NewMetric() returned same provider for different metrics")
 	}
 
 	// Verify they have different meters
-	if metric1.meter == metric2.meter {
+	if metricInstance1.(*metric).meter == metricInstance2.(*metric).meter {
 		t.Errorf("NewMetric() returned same meter for different metrics")
 	}
 
 	// Create counters from both instances and verify they work independently
-	counter1, err := metric1.CreateCounter("counter1", "1", "Counter from metric1")
+	counter1, err := metricInstance1.CreateCounter("counter1", "1", "Counter from metric1")
 	if err != nil {
 		t.Fatalf("metric1.CreateCounter() error = %v", err)
 	}
 
-	counter2, err := metric2.CreateCounter("counter2", "1", "Counter from metric2")
+	counter2, err := metricInstance2.CreateCounter("counter2", "1", "Counter from metric2")
 	if err != nil {
 		t.Fatalf("metric2.CreateCounter() error = %v", err)
 	}
 
 	ctx := context.Background()
-	metric1.RecordCounter(ctx, counter1, 1)
-	metric2.RecordCounter(ctx, counter2, 2)
+	metricInstance1.RecordCounter(ctx, counter1, 1)
+	metricInstance2.RecordCounter(ctx, counter2, 2)
 
 	// Verify counters are different
 	if counter1 == counter2 {

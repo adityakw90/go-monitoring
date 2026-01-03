@@ -1,0 +1,112 @@
+package tracer
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"google.golang.org/grpc/credentials"
+)
+
+// NewTracer creates and configures an OpenTelemetry Tracer according to the provided Options.
+// Defaults are provider "stdout", sample ratio 1.0 (always sample), and a 5s batch timeout.
+// It returns an initialized Tracer or an error if validation fails (for example invalid batch timeout,
+// missing/invalid OTLP host or port, or an unsupported provider) or if resource/exporter creation fails.
+func NewTracer(opts ...Option) (Tracer, error) {
+	options := &Options{
+		Provider:     "stdout",
+		SampleRatio:  1.0,
+		BatchTimeout: 5 * time.Second,
+	}
+
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	// validate batch timeout
+	if options.BatchTimeout <= 0 {
+		return nil, ErrBatchTimeoutInvalid
+	}
+
+	// Create resource with service name
+	res, err := resource.New(
+		context.Background(),
+		resource.WithAttributes(
+			semconv.ServiceInstanceIDKey.String(options.InstanceName),
+			semconv.HostNameKey.String(options.InstanceHost),
+			semconv.DeploymentEnvironmentKey.String(options.Environment),
+			semconv.ServiceNameKey.String(options.ServiceName),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	// Select the exporter based on the config
+	var exporter sdktrace.SpanExporter
+	switch options.Provider {
+	case "stdout":
+		exporter, err = stdouttrace.New(
+			stdouttrace.WithPrettyPrint(),
+		)
+	case "otlp":
+		if options.ProviderHost == "" {
+			return nil, ErrProviderHostRequired
+		}
+		if options.ProviderPort == 0 {
+			return nil, ErrProviderPortRequired
+		}
+		if options.ProviderPort < 0 {
+			return nil, ErrProviderPortInvalid
+		}
+		otlpOpts := []otlptracegrpc.Option{
+			otlptracegrpc.WithEndpoint(
+				fmt.Sprintf("%s:%d", options.ProviderHost, options.ProviderPort),
+			),
+		}
+		if options.Insecure {
+			otlpOpts = append(otlpOpts, otlptracegrpc.WithInsecure())
+		} else {
+			otlpOpts = append(otlpOpts, otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, options.ProviderHost)))
+		}
+		exporter, err = otlptracegrpc.New(context.Background(), otlpOpts...)
+	default:
+		return nil, ErrInvalidProvider
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create exporter: %w", err)
+	}
+
+	// Create a sampler with the ratio from config
+	var sampler sdktrace.Sampler
+	switch {
+	case options.SampleRatio <= 0:
+		sampler = sdktrace.NeverSample()
+	case options.SampleRatio >= 1.0:
+		sampler = sdktrace.AlwaysSample()
+	default:
+		sampler = sdktrace.TraceIDRatioBased(options.SampleRatio)
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(
+			exporter,
+			sdktrace.WithBatchTimeout(options.BatchTimeout),
+		),
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sampler),
+	)
+
+	return &tracer{
+		provider:   tp,
+		tracer:     tp.Tracer(options.ServiceName),
+		propagator: propagation.TraceContext{},
+	}, nil
+}

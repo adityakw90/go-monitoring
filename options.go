@@ -10,6 +10,7 @@ type Options struct {
 	InstanceName       string        // InstanceName is the unique identifier for this service instance.
 	InstanceHost       string        // InstanceHost is the hostname where this service instance is running.
 	LoggerLevel        string        // LoggerLevel is the minimum log level to output. Valid values: "debug", "info", "warn", "error", "fatal".
+	LoggerOutputPath   string        // LoggerOutputPath is the file path where logs will be written. If empty, logs will be written to stdout.
 	TracerProvider     string        // TracerProvider specifies the trace exporter to use ("stdout" or "otlp").
 	TracerProviderHost string        // TracerProviderHost is the hostname of the OTLP trace collector.
 	TracerProviderPort int           // TracerProviderPort is the port of the OTLP trace collector.
@@ -82,21 +83,19 @@ func WithInstance(name, host string) Option {
 	}
 }
 
-// WithLoggerLevel sets the logger level.
-// Only log messages at or above this level will be output.
-//
-// Parameters:
-//   - level: The log level ("debug", "info", "warn", "error", "fatal")
-//
-// Example:
-//
-//	mon, err := NewMonitoring(
-//	    WithServiceName("my-service"),
-//	    WithLoggerLevel("debug"),
-//	)
+// WithLoggerLevel returns an Option that sets the logger minimum level for monitoring
+// (e.g., "debug", "info", "warn", "error", "fatal").
 func WithLoggerLevel(level string) Option {
 	return func(o *Options) {
 		o.LoggerLevel = level
+	}
+}
+
+// WithLoggerOutputPath returns an Option that sets the file path used for log output.
+// If the provided path is empty, logs will be written to stdout.
+func WithLoggerOutputPath(path string) Option {
+	return func(o *Options) {
+		o.LoggerOutputPath = path
 	}
 }
 
@@ -243,11 +242,15 @@ func WithMetricInsecure(insecure bool) Option {
 	}
 }
 
-// defaultOptions returns Options with sensible defaults.
+// defaultOptions returns a pointer to Options populated with sensible defaults for monitoring components.
+// The defaults set the environment to "development", logger level to "info" with an empty LoggerOutputPath (use stdout),
+// tracer and metric providers to "stdout", tracer sample ratio to 1.0, tracer batch timeout to 5s, and metric export
+// interval to 60s.
 func defaultOptions() *Options {
 	return &Options{
 		Environment:        "development",
 		LoggerLevel:        "info",
+		LoggerOutputPath:   "",
 		TracerProvider:     "stdout",
 		TracerSampleRatio:  1.0,
 		TracerBatchTimeout: 5 * time.Second,

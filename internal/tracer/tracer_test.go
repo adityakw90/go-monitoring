@@ -1,4 +1,4 @@
-package monitoring
+package tracer
 
 import (
 	"context"
@@ -10,121 +10,8 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func TestNewTracer(t *testing.T) {
-	tests := []struct {
-		name    string
-		opts    []TracerOption
-		wantErr bool
-	}{
-		{
-			name:    "default tracer with stdout",
-			opts:    []TracerOption{withTracerServiceName("test-service")},
-			wantErr: false,
-		},
-		{
-			name: "with all options",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerEnvironment("test"),
-				withTracerInstance("instance-1", "localhost"),
-				withTracerProvider("stdout", "", 0),
-				withTracerSampleRatio(0.5),
-				withTracerBatchTimeout(10 * time.Second),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with otlp provider (insecure)",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerProvider("otlp", "localhost", 4317),
-				withTracerInsecure(true),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with otlp provider (secure)",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerProvider("otlp", "localhost", 4317),
-				withTracerInsecure(false),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with invalid provider",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerProvider("invalid", "", 0),
-			},
-			wantErr: true,
-		},
-		{
-			name: "with sample ratio 0",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerSampleRatio(0.0),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with sample ratio 1.0",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerSampleRatio(1.0),
-			},
-			wantErr: false,
-		},
-		{
-			name: "with sample ratio > 1.0 (uses AlwaysSample)",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerSampleRatio(1.5),
-			},
-			wantErr: false, // Uses AlwaysSample for ratios >= 1.0
-		},
-		{
-			name: "with sample ratio < 0 (uses NeverSample)",
-			opts: []TracerOption{
-				withTracerServiceName("test-service"),
-				withTracerSampleRatio(-0.5),
-			},
-			wantErr: false, // Uses NeverSample for ratios <= 0
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tracer, err := NewTracer(tt.opts...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewTracer() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr {
-				if tracer == nil {
-					t.Errorf("NewTracer() returned nil")
-					return
-				}
-				if tracer.provider == nil {
-					t.Errorf("NewTracer() provider is nil")
-				}
-				if tracer.tracer == nil {
-					t.Errorf("NewTracer() tracer is nil")
-				}
-				if tracer.propagator == nil {
-					t.Errorf("NewTracer() propagator is nil")
-				}
-				// Cleanup
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				_ = tracer.Shutdown(ctx)
-			}
-		})
-	}
-}
-
-func TestTracer_StartSpan(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_StartSpan(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -151,8 +38,8 @@ func TestTracer_StartSpan(t *testing.T) {
 	span2.End()
 }
 
-func TestTracer_EndSpan(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_EndSpan(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -169,8 +56,8 @@ func TestTracer_EndSpan(t *testing.T) {
 	tracer.EndSpan(span)
 }
 
-func TestTracer_Shutdown(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_Shutdown(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -188,8 +75,8 @@ func TestTracer_Shutdown(t *testing.T) {
 	}
 }
 
-func TestTracer_NewSpanFromSpan(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_StartChildSpan(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -203,12 +90,12 @@ func TestTracer_NewSpanFromSpan(t *testing.T) {
 	ctx, parentSpan := tracer.StartSpan(ctx, "parent-operation")
 	defer parentSpan.End()
 
-	ctx2, childSpan := tracer.NewSpanFromSpan(ctx, "child-operation", parentSpan)
+	ctx2, childSpan := tracer.StartChildSpan(ctx, "child-operation", parentSpan)
 	if childSpan == nil {
-		t.Errorf("NewSpanFromSpan() returned nil span")
+		t.Errorf("StartChildSpan() returned nil span")
 	}
 	if !childSpan.SpanContext().IsValid() {
-		t.Errorf("NewSpanFromSpan() returned invalid span context")
+		t.Errorf("StartChildSpan() returned invalid span context")
 	}
 
 	// Verify parent-child relationship
@@ -217,24 +104,24 @@ func TestTracer_NewSpanFromSpan(t *testing.T) {
 
 	// Child should have the same TraceID as parent
 	if childCtx.TraceID() != parentCtx.TraceID() {
-		t.Errorf("NewSpanFromSpan() child TraceID = %s, want %s", childCtx.TraceID().String(), parentCtx.TraceID().String())
+		t.Errorf("StartChildSpan() child TraceID = %s, want %s", childCtx.TraceID().String(), parentCtx.TraceID().String())
 	}
 
 	// Verify the parent span context is correctly propagated in the returned context
 	retrievedSpan := trace.SpanFromContext(ctx2)
 	if retrievedSpan == nil {
-		t.Errorf("NewSpanFromSpan() context does not contain span")
+		t.Errorf("StartChildSpan() context does not contain span")
 	}
 	retrievedCtx := retrievedSpan.SpanContext()
 	if retrievedCtx.TraceID() != parentCtx.TraceID() {
-		t.Errorf("NewSpanFromSpan() retrieved span TraceID = %s, want %s", retrievedCtx.TraceID().String(), parentCtx.TraceID().String())
+		t.Errorf("StartChildSpan() retrieved span TraceID = %s, want %s", retrievedCtx.TraceID().String(), parentCtx.TraceID().String())
 	}
 
 	childSpan.End()
 }
 
-func TestTracer_NewSpanFromContext(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_NewSpanFromContext(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -258,8 +145,8 @@ func TestTracer_NewSpanFromContext(t *testing.T) {
 	}
 }
 
-func TestTracer_ExtractContext(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_ExtractContext(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -293,8 +180,8 @@ func TestTracer_ExtractContext(t *testing.T) {
 	}
 }
 
-func TestTracer_InjectContext(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_InjectContext(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -333,8 +220,8 @@ func TestTracer_InjectContext(t *testing.T) {
 	}
 }
 
-func TestTracer_ExtractContext_EmptyMetadata(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_ExtractContext_EmptyMetadata(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -352,8 +239,8 @@ func TestTracer_ExtractContext_EmptyMetadata(t *testing.T) {
 	_ = ctx
 }
 
-func TestTracer_ExtractContext_WithMultipleValues(t *testing.T) {
-	tracer, err := NewTracer(withTracerServiceName("test-service"))
+func TestTracer_Tracer_ExtractContext_WithMultipleValues(t *testing.T) {
+	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
 	}
@@ -382,11 +269,11 @@ func TestTracer_ExtractContext_WithMultipleValues(t *testing.T) {
 	}
 }
 
-func TestTracer_MultipleTracersCoexist(t *testing.T) {
+func TestTracer_Tracer_MultipleTracersCoexist(t *testing.T) {
 	// Create multiple tracers with different configurations
 	tracer1, err := NewTracer(
-		withTracerServiceName("service-1"),
-		withTracerEnvironment("env-1"),
+		WithServiceName("service-1"),
+		WithEnvironment("env-1"),
 	)
 	if err != nil {
 		t.Fatalf("NewTracer() for tracer1 error = %v", err)
@@ -398,8 +285,8 @@ func TestTracer_MultipleTracersCoexist(t *testing.T) {
 	}()
 
 	tracer2, err := NewTracer(
-		withTracerServiceName("service-2"),
-		withTracerEnvironment("env-2"),
+		WithServiceName("service-2"),
+		WithEnvironment("env-2"),
 	)
 	if err != nil {
 		t.Fatalf("NewTracer() for tracer2 error = %v", err)
@@ -411,34 +298,34 @@ func TestTracer_MultipleTracersCoexist(t *testing.T) {
 	}()
 
 	// Verify both tracers have their own providers and propagators
-	if tracer1.provider == nil {
+	if tracer1.(*tracer).provider == nil {
 		t.Errorf("tracer1.provider is nil")
 	}
-	if tracer1.propagator == nil {
+	if tracer1.(*tracer).propagator == nil {
 		t.Errorf("tracer1.propagator is nil")
 	}
-	if tracer2.provider == nil {
+	if tracer2.(*tracer).provider == nil {
 		t.Errorf("tracer2.provider is nil")
 	}
-	if tracer2.propagator == nil {
+	if tracer2.(*tracer).propagator == nil {
 		t.Errorf("tracer2.propagator is nil")
 	}
 
 	// Verify they are different instances
-	if tracer1.provider == tracer2.provider {
+	if tracer1.(*tracer).provider == tracer2.(*tracer).provider {
 		t.Errorf("tracer1 and tracer2 share the same provider instance")
 	}
 
 	// Test that both tracers can create spans independently
 	ctx1 := context.Background()
-	ctx1, span1 := tracer1.StartSpan(ctx1, "span-1")
+	ctx1, span1 := tracer1.(*tracer).StartSpan(ctx1, "span-1")
 	if span1 == nil {
 		t.Errorf("tracer1.StartSpan() returned nil")
 	}
 	span1.End()
 
 	ctx2 := context.Background()
-	ctx2, span2 := tracer2.StartSpan(ctx2, "span-2")
+	ctx2, span2 := tracer2.(*tracer).StartSpan(ctx2, "span-2")
 	if span2 == nil {
 		t.Errorf("tracer2.StartSpan() returned nil")
 	}
@@ -453,13 +340,13 @@ func TestTracer_MultipleTracersCoexist(t *testing.T) {
 	}
 
 	// Test that each tracer's propagator works independently
-	md1 := tracer1.InjectContext(ctx1)
-	md2 := tracer2.InjectContext(ctx2)
+	md1 := tracer1.(*tracer).InjectContext(ctx1)
+	md2 := tracer2.(*tracer).InjectContext(ctx2)
 
 	if len(md1) == 0 {
 		t.Errorf("tracer1.InjectContext() returned empty metadata")
 	}
 	if len(md2) == 0 {
-		t.Errorf("tracer2.InjectContext() returned empty metadata")
+		t.Errorf("tracer2.(*tracer).InjectContext() returned empty metadata")
 	}
 }
