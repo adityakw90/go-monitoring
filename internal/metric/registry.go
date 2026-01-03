@@ -45,6 +45,11 @@ func NewMetric(opts ...Option) (Metric, error) {
 		opt(options)
 	}
 
+	// validate interval
+	if options.Interval <= 0 {
+		return nil, ErrIntervalInvalid
+	}
+
 	// Create resource with service name and other attributes
 	res, err := resource.New(
 		context.Background(),
@@ -73,7 +78,7 @@ func NewMetric(opts ...Option) (Metric, error) {
 		if options.ProviderPort == 0 {
 			return nil, ErrProviderPortRequired
 		}
-		if options.ProviderPort <= 0 {
+		if options.ProviderPort < 0 {
 			return nil, ErrProviderPortInvalid
 		}
 		otlpOpts := []otlpmetricgrpc.Option{
@@ -93,11 +98,6 @@ func NewMetric(opts ...Option) (Metric, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
-	}
-
-	// validate interval
-	if options.Interval <= 0 {
-		return nil, ErrIntervalInvalid
 	}
 
 	// Create the MeterProvider with the exporter

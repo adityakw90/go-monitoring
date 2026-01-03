@@ -48,6 +48,11 @@ func NewTracer(opts ...Option) (Tracer, error) {
 		opt(options)
 	}
 
+	// validate batch timeout
+	if options.BatchTimeout <= 0 {
+		return nil, ErrBatchTimeoutInvalid
+	}
+
 	// Create resource with service name
 	res, err := resource.New(
 		context.Background(),
@@ -76,7 +81,7 @@ func NewTracer(opts ...Option) (Tracer, error) {
 		if options.ProviderPort == 0 {
 			return nil, ErrProviderPortRequired
 		}
-		if options.ProviderPort <= 0 {
+		if options.ProviderPort < 0 {
 			return nil, ErrProviderPortInvalid
 		}
 		otlpOpts := []otlptracegrpc.Option{
@@ -107,11 +112,6 @@ func NewTracer(opts ...Option) (Tracer, error) {
 		sampler = sdktrace.AlwaysSample()
 	default:
 		sampler = sdktrace.TraceIDRatioBased(options.SampleRatio)
-	}
-
-	// validate batch timeout
-	if options.BatchTimeout <= 0 {
-		return nil, ErrBatchTimeoutInvalid
 	}
 
 	tp := sdktrace.NewTracerProvider(
