@@ -36,7 +36,10 @@ import (
 //	    WithServiceName("my-service"),
 //	    WithProvider("otlp", "localhost", 4317),
 //	    WithSampleRatio(0.1),
-//	)
+// NewTracer creates and configures an OpenTelemetry Tracer according to the provided Options.
+// Defaults are provider "stdout", sample ratio 1.0 (always sample), and a 5s batch timeout.
+// It returns an initialized Tracer or an error if validation fails (for example invalid batch timeout,
+// missing/invalid OTLP host or port, or an unsupported provider) or if resource/exporter creation fails.
 func NewTracer(opts ...Option) (Tracer, error) {
 	options := &Options{
 		Provider:     "stdout",

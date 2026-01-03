@@ -34,7 +34,16 @@ import (
 //	    WithServiceName("my-service"),
 //	    WithProvider("otlp", "localhost", 4318),
 //	    WithInterval(30*time.Second),
-//	)
+// NewMetric creates and returns a Metric configured according to the provided Options.
+// It builds an OpenTelemetry MeterProvider backed by a PeriodicReader and an exporter
+// selected by the Options.Provider (supported: "stdout", "otlp"), and attaches a Resource
+// populated from the service attributes in Options.
+//
+// Errors returned include:
+// - ErrIntervalInvalid when Options.Interval is less than or equal to zero.
+// - ErrProviderHostRequired, ErrProviderPortRequired, ErrProviderPortInvalid for missing/invalid OTLP host/port.
+// - ErrInvalidProvider when Options.Provider is not supported.
+// Other errors wrap failures that occur while creating the resource or the exporter.
 func NewMetric(opts ...Option) (Metric, error) {
 	options := &Options{
 		Provider: "stdout",

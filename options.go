@@ -94,7 +94,8 @@ func WithInstance(name, host string) Option {
 //	mon, err := NewMonitoring(
 //	    WithServiceName("my-service"),
 //	    WithLoggerLevel("debug"),
-//	)
+// WithLoggerLevel returns an Option that sets the logger minimum level for monitoring
+// (e.g., "debug", "info", "warn", "error", "fatal").
 func WithLoggerLevel(level string) Option {
 	return func(o *Options) {
 		o.LoggerLevel = level
@@ -112,7 +113,8 @@ func WithLoggerLevel(level string) Option {
 //	mon, err := NewMonitoring(
 //	    WithServiceName("my-service"),
 //	    WithLoggerOutputPath("/var/log/app.log"),
-//	)
+// WithLoggerOutputPath returns an Option that sets the file path used for log output.
+// If the provided path is empty, logs will be written to stdout.
 func WithLoggerOutputPath(path string) Option {
 	return func(o *Options) {
 		o.LoggerOutputPath = path
@@ -262,7 +264,10 @@ func WithMetricInsecure(insecure bool) Option {
 	}
 }
 
-// defaultOptions returns Options with sensible defaults.
+// defaultOptions returns a pointer to Options populated with sensible defaults for monitoring components.
+// The defaults set the environment to "development", logger level to "info" with an empty LoggerOutputPath (use stdout),
+// tracer and metric providers to "stdout", tracer sample ratio to 1.0, tracer batch timeout to 5s, and metric export
+// interval to 60s.
 func defaultOptions() *Options {
 	return &Options{
 		Environment:        "development",

@@ -20,21 +20,23 @@ type Options struct {
 // It follows the functional options pattern for flexible metric configuration.
 type Option func(*Options)
 
-// WithServiceName sets the service name for the metric (internal use).
+// WithServiceName returns an Option that sets the ServiceName field used to identify the service collecting metrics.
 func WithServiceName(name string) Option {
 	return func(o *Options) {
 		o.ServiceName = name
 	}
 }
 
-// WithEnvironment sets the environment (internal use).
+// WithEnvironment returns an Option that sets the Environment field on Options.
+// The env should be a deployment environment identifier such as "development" or "production".
 func WithEnvironment(env string) Option {
 	return func(o *Options) {
 		o.Environment = env
 	}
 }
 
-// WithInstance sets the instance name and host (internal use).
+// WithInstance returns an Option that sets the Options InstanceName and InstanceHost fields to the provided name and host.
+// name is the instance identifier; host is the instance hostname.
 func WithInstance(name, host string) Option {
 	return func(o *Options) {
 		o.InstanceName = name
@@ -42,7 +44,8 @@ func WithInstance(name, host string) Option {
 	}
 }
 
-// WithProvider sets the metric provider configuration (internal use).
+// WithProvider sets the metric exporter provider and the OTLP collector host and port on an Options value.
+// The returned Option assigns Provider, ProviderHost, and ProviderPort when applied.
 func WithProvider(provider, host string, port int) Option {
 	return func(o *Options) {
 		o.Provider = provider
@@ -51,14 +54,15 @@ func WithProvider(provider, host string, port int) Option {
 	}
 }
 
-// WithInterval sets the export interval (internal use).
+// WithInterval sets the export interval between metric exports.
+// The returned Option sets the Options.Interval field to the provided duration.
 func WithInterval(interval time.Duration) Option {
 	return func(o *Options) {
 		o.Interval = interval
 	}
 }
 
-// WithInsecure sets whether to use an insecure connection for OTLP exporter (internal use).
+// When true, TLS is disabled for the OTLP exporter; when false, TLS is enabled.
 func WithInsecure(insecure bool) Option {
 	return func(o *Options) {
 		o.Insecure = insecure

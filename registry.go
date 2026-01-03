@@ -9,7 +9,8 @@ import (
 )
 
 // parseOptions applies the given options to default options and returns the configured Options.
-// It follows the functional options pattern, starting with defaults and applying each option in order.
+// parseOptions applies the provided functional options to a copy of the package default Options
+// and returns the resulting configuration. Options are applied in order; later options override earlier ones.
 func parseOptions(opts ...Option) *Options {
 	options := defaultOptions()
 	for _, opt := range opts {
@@ -42,7 +43,8 @@ func parseOptions(opts ...Option) *Options {
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	defer logger.Sync()
+// NewLogger creates a Logger configured by the provided functional options.
+// It returns the initialized Logger or an error if initialization fails.
 func NewLogger(opts ...Option) (Logger, error) {
 	options := parseOptions(opts...)
 	loggerInstance, err := logger.NewLogger(
@@ -94,7 +96,11 @@ func NewLogger(opts ...Option) (Logger, error) {
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	defer tracer.Shutdown(context.Background())
+// NewTracer creates and returns a Tracer configured by the provided options.
+// It applies functional options to the default configuration and initializes an
+// underlying tracer instance with service name, environment, instance info,
+// provider settings, sampling ratio, batch timeout, and insecure flag.
+// Returns a non-nil error if tracer initialization fails.
 func NewTracer(opts ...Option) (Tracer, error) {
 	options := parseOptions(opts...)
 	tracerInstance, err := tracer.NewTracer(
@@ -149,7 +155,10 @@ func NewTracer(opts ...Option) (Tracer, error) {
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	defer metric.Shutdown(context.Background())
+// NewMetric creates a Metric configured by the provided functional options.
+// It applies the options to defaults and initializes the metric backend accordingly.
+// On success it returns the initialized Metric. If initialization fails it returns
+// nil and an error describing the failure (prefixed with "failed to initialize metric").
 func NewMetric(opts ...Option) (Metric, error) {
 	options := parseOptions(opts...)
 	metricInstance, err := metric.NewMetric(
@@ -204,7 +213,9 @@ func NewMetric(opts ...Option) (Metric, error) {
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	defer mon.Shutdown(context.Background())
+// NewMonitoring initializes and returns a Monitoring containing Logger, Tracer, and Metric configured by the provided options.
+// It requires the ServiceName option; when ServiceName is empty it returns ErrServiceNameRequired.
+// If initialization of any component fails, previously initialized components are cleaned up (logger Sync, tracer Shutdown) and the error is returned wrapped via parseError.
 func NewMonitoring(opts ...Option) (*Monitoring, error) {
 	options := parseOptions(opts...)
 
