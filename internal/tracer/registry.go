@@ -70,17 +70,17 @@ func NewTracer(opts ...Option) (Tracer, error) {
 			stdouttrace.WithPrettyPrint(),
 		)
 	case "otlp":
-		opts := []otlptracegrpc.Option{
+		otlpOpts := []otlptracegrpc.Option{
 			otlptracegrpc.WithEndpoint(
 				fmt.Sprintf("%s:%d", options.ProviderHost, options.ProviderPort),
 			),
 		}
 		if options.Insecure {
-			opts = append(opts, otlptracegrpc.WithInsecure())
+			otlpOpts = append(otlpOpts, otlptracegrpc.WithInsecure())
 		} else {
-			opts = append(opts, otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+			otlpOpts = append(otlpOpts, otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
 		}
-		exporter, err = otlptracegrpc.New(context.Background(), opts...)
+		exporter, err = otlptracegrpc.New(context.Background(), otlpOpts...)
 	default:
 		return nil, ErrInvalidProvider
 	}
