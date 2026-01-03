@@ -67,17 +67,17 @@ func NewMetric(opts ...Option) (Metric, error) {
 			stdoutmetric.WithPrettyPrint(),
 		)
 	case "otlp":
-		opts := []otlpmetricgrpc.Option{
+		otlpOpts := []otlpmetricgrpc.Option{
 			otlpmetricgrpc.WithEndpoint(
 				fmt.Sprintf("%s:%d", options.ProviderHost, options.ProviderPort),
 			),
 		}
 		if options.Insecure {
-			opts = append(opts, otlpmetricgrpc.WithInsecure())
+			otlpOpts = append(otlpOpts, otlpmetricgrpc.WithInsecure())
 		} else {
-			opts = append(opts, otlpmetricgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+			otlpOpts = append(otlpOpts, otlpmetricgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
 		}
-		exporter, err = otlpmetricgrpc.New(context.Background(), opts...)
+		exporter, err = otlpmetricgrpc.New(context.Background(), otlpOpts...)
 	default:
 		return nil, ErrInvalidProvider
 	}
