@@ -67,6 +67,15 @@ func NewMetric(opts ...Option) (Metric, error) {
 			stdoutmetric.WithPrettyPrint(),
 		)
 	case "otlp":
+		if options.ProviderHost == "" {
+			return nil, ErrProviderHostRequired
+		}
+		if options.ProviderPort == 0 {
+			return nil, ErrProviderPortRequired
+		}
+		if options.ProviderPort <= 0 {
+			return nil, ErrProviderPortInvalid
+		}
 		otlpOpts := []otlpmetricgrpc.Option{
 			otlpmetricgrpc.WithEndpoint(
 				fmt.Sprintf("%s:%d", options.ProviderHost, options.ProviderPort),

@@ -70,6 +70,15 @@ func NewTracer(opts ...Option) (Tracer, error) {
 			stdouttrace.WithPrettyPrint(),
 		)
 	case "otlp":
+		if options.ProviderHost == "" {
+			return nil, ErrProviderHostRequired
+		}
+		if options.ProviderPort == 0 {
+			return nil, ErrProviderPortRequired
+		}
+		if options.ProviderPort <= 0 {
+			return nil, ErrProviderPortInvalid
+		}
 		otlpOpts := []otlptracegrpc.Option{
 			otlptracegrpc.WithEndpoint(
 				fmt.Sprintf("%s:%d", options.ProviderHost, options.ProviderPort),

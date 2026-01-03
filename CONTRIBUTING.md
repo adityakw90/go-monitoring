@@ -92,7 +92,7 @@ Feature suggestions are welcome! Please open an issue with:
 
 ## Project Structure
 
-```
+```text
 go-monitoring/
 ├── internal/          # Internal packages (not exported)
 │   ├── logger/       # Logger implementation

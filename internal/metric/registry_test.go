@@ -2,15 +2,17 @@ package metric
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
 
 func TestMetric_NewMetric(t *testing.T) {
 	tests := []struct {
-		name    string
-		opts    []Option
-		wantErr bool
+		name      string
+		opts      []Option
+		wantErr   bool
+		wantErrIs error
 	}{
 		{
 			name:    "default metric with stdout",
@@ -37,12 +39,28 @@ func TestMetric_NewMetric(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "with invalid provider",
-			opts: []Option{
-				WithServiceName("test-service"),
-				WithProvider("invalid", "", 0),
-			},
-			wantErr: true,
+			name:      "with invalid provider",
+			opts:      []Option{WithServiceName("test-service"), WithProvider("invalid", "", 0)},
+			wantErr:   true,
+			wantErrIs: ErrInvalidProvider,
+		},
+		{
+			name:      "with otlp provider missing host",
+			opts:      []Option{WithServiceName("test-service"), WithProvider("otlp", "", 4317)},
+			wantErr:   true,
+			wantErrIs: ErrProviderHostRequired,
+		},
+		{
+			name:      "with otlp provider missing port",
+			opts:      []Option{WithServiceName("test-service"), WithProvider("otlp", "localhost", 0)},
+			wantErr:   true,
+			wantErrIs: ErrProviderPortRequired,
+		},
+		{
+			name:      "with otlp provider invalid port (negative)",
+			opts:      []Option{WithServiceName("test-service"), WithProvider("otlp", "localhost", -1)},
+			wantErr:   true,
+			wantErrIs: ErrProviderPortInvalid,
 		},
 		{
 			name: "with custom interval",
@@ -79,7 +97,11 @@ func TestMetric_NewMetric(t *testing.T) {
 				t.Errorf("NewMetric() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr {
+			if tt.wantErr {
+				if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
+					t.Errorf("NewTracer() error = %v, wantErrIs %v", err, tt.wantErrIs)
+				}
+			} else {
 				if metricInstance == nil {
 					t.Errorf("NewMetric() returned nil")
 					return
