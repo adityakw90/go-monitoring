@@ -75,7 +75,7 @@ func NewMetric(opts ...Option) (Metric, error) {
 		if options.Insecure {
 			otlpOpts = append(otlpOpts, otlpmetricgrpc.WithInsecure())
 		} else {
-			otlpOpts = append(otlpOpts, otlpmetricgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+			otlpOpts = append(otlpOpts, otlpmetricgrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, options.ProviderHost)))
 		}
 		exporter, err = otlpmetricgrpc.New(context.Background(), otlpOpts...)
 	default:
