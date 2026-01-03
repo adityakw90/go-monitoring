@@ -30,6 +30,10 @@ func NewLogger(opts ...Option) (Logger, error) {
 	config.Encoding = "json"
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
+	if options.OutputPath != "" {
+		config.OutputPaths = []string{options.OutputPath}
+	}
+
 	loggerInstance, err := config.Build(zap.AddCaller(), zap.AddCallerSkip(1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to build logger: %w", err)

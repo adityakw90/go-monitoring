@@ -8,6 +8,7 @@ import (
 	"github.com/adityakw90/go-monitoring/internal/tracer"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -300,19 +301,31 @@ func TestLogger_Logger_Error(t *testing.T) {
 }
 
 func TestLogger_Logger_Fatal(t *testing.T) {
-	// Note: Fatal calls os.Exit(1), so we can't test it normally
-	// This test verifies the method exists and can be called without compilation errors
-	// In a real scenario, you might use a subprocess or mock for testing
-	loggerInstance, err := NewLogger()
+	// Use zap's OnFatal option with WriteThenNoop to test Fatal without exiting
+	// See: https://github.com/uber-go/zap/issues/846
+	// testLogger, err := newTestLogger()
+	atomicLevel := zap.NewAtomicLevel()
+	atomicLevel.SetLevel(zapcore.DebugLevel)
+	config := zap.NewProductionConfig()
+	config.Level = atomicLevel
+	zapLogger, err := config.Build(
+		zap.AddCaller(),
+		zap.AddCallerSkip(1),
+		zap.OnFatal(zapcore.WriteThenPanic), // Panic instead of exit for testing
+	)
+
 	if err != nil {
-		t.Fatalf("NewLogger() error = %v", err)
+		t.Fatalf("Logger.Fatal() Build error = %v", err)
+	}
+	loggerInstance := &logger{
+		logger: zapLogger,
+		level:  &atomicLevel,
 	}
 
 	tests := []struct {
 		name    string
 		message string
 		fields  map[string]interface{}
-		skip    bool
 	}{
 		{
 			name:    "fatal with fields",
@@ -320,22 +333,54 @@ func TestLogger_Logger_Fatal(t *testing.T) {
 			fields: map[string]interface{}{
 				"key": "value",
 			},
-			skip: true, // Skip actual execution as it would exit
 		},
 		{
 			name:    "fatal without fields",
 			message: "fatal message",
 			fields:  nil,
-			skip:    true,
+		},
+		{
+			name:    "fatal with empty fields",
+			message: "fatal message",
+			fields:  map[string]interface{}{},
+		},
+		{
+			name:    "fatal with empty message",
+			message: "",
+			fields: map[string]interface{}{
+				"key": "value",
+			},
+		},
+		{
+			name:    "fatal with various field types",
+			message: "fatal message",
+			fields: map[string]interface{}{
+				"string": "value",
+				"int":    42,
+				"float":  3.14,
+				"bool":   true,
+				"slice":  []string{"a", "b"},
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.skip {
-				t.Skip("Skipping fatal test as it would exit the process")
-			}
+			// Use zap's OnFatal with WriteThenPanic to test Fatal without os.Exit
+			// We recover from the panic to verify Fatal was called
+			// See: https://github.com/uber-go/zap/issues/846
+			panicked := false
+			defer func() {
+				if r := recover(); r != nil {
+					panicked = true
+					// Expected panic from WriteThenPanic - this is how we test Fatal
+				}
+			}()
 			loggerInstance.Fatal(tt.message, tt.fields)
+			// If we reach here without panic, something is wrong
+			if !panicked {
+				t.Error("Fatal should have panicked with WriteThenPanic")
+			}
 		})
 	}
 }
@@ -443,6 +488,17 @@ func TestLogger_Logger_Sync(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "sync logger with nil internal logger",
+			setup: func(t *testing.T) Logger {
+				// Create a logger struct with nil internal logger
+				return &logger{
+					logger: nil,
+					level:  nil,
+				}
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -453,6 +509,10 @@ func TestLogger_Logger_Sync(t *testing.T) {
 			// This is expected behavior, so we only check that nil logger doesn't error
 			if loggerInstance == nil && err != nil {
 				t.Errorf("Sync() on nil logger error = %v, want nil", err)
+			}
+			// For logger with nil internal logger, should return nil error
+			if l, ok := loggerInstance.(*logger); ok && l != nil && l.logger == nil && err != nil {
+				t.Errorf("Sync() on logger with nil internal logger error = %v, want nil", err)
 			}
 		})
 	}

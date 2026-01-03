@@ -10,6 +10,7 @@ type Options struct {
 	InstanceName       string        // InstanceName is the unique identifier for this service instance.
 	InstanceHost       string        // InstanceHost is the hostname where this service instance is running.
 	LoggerLevel        string        // LoggerLevel is the minimum log level to output. Valid values: "debug", "info", "warn", "error", "fatal".
+	LoggerOutputPath   string        // LoggerOutputPath is the file path where logs will be written. If empty, logs will be written to stdout.
 	TracerProvider     string        // TracerProvider specifies the trace exporter to use ("stdout" or "otlp").
 	TracerProviderHost string        // TracerProviderHost is the hostname of the OTLP trace collector.
 	TracerProviderPort int           // TracerProviderPort is the port of the OTLP trace collector.
@@ -97,6 +98,24 @@ func WithInstance(name, host string) Option {
 func WithLoggerLevel(level string) Option {
 	return func(o *Options) {
 		o.LoggerLevel = level
+	}
+}
+
+// WithLoggerOutputPath sets the logger output path.
+// Logs will be written to the specified file path. If not set, logs will be written to stdout.
+//
+// Parameters:
+//   - path: The file path where logs will be written (e.g., "/var/log/app.log", "./logs/app.log")
+//
+// Example:
+//
+//	mon, err := NewMonitoring(
+//	    WithServiceName("my-service"),
+//	    WithLoggerOutputPath("/var/log/app.log"),
+//	)
+func WithLoggerOutputPath(path string) Option {
+	return func(o *Options) {
+		o.LoggerOutputPath = path
 	}
 }
 
@@ -248,6 +267,7 @@ func defaultOptions() *Options {
 	return &Options{
 		Environment:        "development",
 		LoggerLevel:        "info",
+		LoggerOutputPath:   "",
 		TracerProvider:     "stdout",
 		TracerSampleRatio:  1.0,
 		TracerBatchTimeout: 5 * time.Second,

@@ -44,6 +44,8 @@ func parseError(err error, message string) error {
 // Optional options:
 //   - WithLoggerLevel: Log level (default: "info")
 //     Valid values: "debug", "info", "warn", "error", "fatal"
+//   - WithLoggerOutputPath: Output file path (default: stdout)
+//     If empty, logs will be written to stdout
 //
 // Returns an error if:
 //   - Logger initialization fails
@@ -53,6 +55,7 @@ func parseError(err error, message string) error {
 //
 //	logger, err := NewLogger(
 //	    WithLoggerLevel("debug"),
+//	    WithLoggerOutputPath("/var/log/app.log"),
 //	)
 //	if err != nil {
 //	    log.Fatal(err)
@@ -60,7 +63,10 @@ func parseError(err error, message string) error {
 //	defer logger.Sync()
 func NewLogger(opts ...Option) (Logger, error) {
 	options := parseOptions(opts...)
-	loggerInstance, err := logger.NewLogger(logger.WithLevel(options.LoggerLevel))
+	loggerInstance, err := logger.NewLogger(
+		logger.WithLevel(options.LoggerLevel),
+		logger.WithOutputPath(options.LoggerOutputPath),
+	)
 	if err != nil {
 		return nil, parseError(err, "failed to initialize logger")
 	}
@@ -226,7 +232,10 @@ func NewMonitoring(opts ...Option) (*Monitoring, error) {
 	}
 
 	// Initialize logger
-	loggerInstance, err := logger.NewLogger(logger.WithLevel(options.LoggerLevel))
+	loggerInstance, err := logger.NewLogger(
+		logger.WithLevel(options.LoggerLevel),
+		logger.WithOutputPath(options.LoggerOutputPath),
+	)
 	if err != nil {
 		return nil, parseError(err, "failed to initialize logger")
 	}
