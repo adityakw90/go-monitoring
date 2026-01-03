@@ -88,6 +88,18 @@ func TestMetric_NewMetric(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:      "with interval 0",
+			opts:      []Option{WithServiceName("test-service"), WithInterval(0)},
+			wantErr:   true,
+			wantErrIs: ErrIntervalInvalid,
+		},
+		{
+			name:      "with interval negative",
+			opts:      []Option{WithServiceName("test-service"), WithInterval(-1 * time.Second)},
+			wantErr:   true,
+			wantErrIs: ErrIntervalInvalid,
+		},
 	}
 
 	for _, tt := range tests {
@@ -99,7 +111,7 @@ func TestMetric_NewMetric(t *testing.T) {
 			}
 			if tt.wantErr {
 				if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
-					t.Errorf("NewTracer() error = %v, wantErrIs %v", err, tt.wantErrIs)
+					t.Errorf("NewMetric() error = %v, wantErrIs %v", err, tt.wantErrIs)
 				}
 			} else {
 				if metricInstance == nil {

@@ -105,6 +105,18 @@ func TestTracer_NewTracer(t *testing.T) {
 			},
 			wantErr: false, // Uses NeverSample for ratios <= 0
 		},
+		{
+			name:      "with batch timeout 0",
+			opts:      []Option{WithServiceName("test-service"), WithBatchTimeout(0)},
+			wantErr:   true,
+			wantErrIs: ErrBatchTimeoutInvalid,
+		},
+		{
+			name:      "with batch timeout negative",
+			opts:      []Option{WithServiceName("test-service"), WithBatchTimeout(-1 * time.Second)},
+			wantErr:   true,
+			wantErrIs: ErrBatchTimeoutInvalid,
+		},
 	}
 
 	for _, tt := range tests {

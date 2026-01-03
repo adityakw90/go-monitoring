@@ -2,8 +2,6 @@ package monitoring
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/adityakw90/go-monitoring/internal/logger"
 	"github.com/adityakw90/go-monitoring/internal/metric"
@@ -18,22 +16,6 @@ func parseOptions(opts ...Option) *Options {
 		opt(options)
 	}
 	return options
-}
-
-// parseError maps internal package errors to public API errors.
-// It checks for known sentinel errors from internal packages and returns the corresponding
-// public error. If the error is not a known sentinel error, it wraps it with the provided message.
-func parseError(err error, message string) error {
-	if errors.Is(err, logger.ErrInvalidLogLevel) {
-		return ErrLoggerInvalidLogLevel
-	}
-	if errors.Is(err, tracer.ErrInvalidProvider) {
-		return ErrTracerInvalidProvider
-	}
-	if errors.Is(err, metric.ErrInvalidProvider) {
-		return ErrMetricInvalidProvider
-	}
-	return fmt.Errorf("%s: %w", message, err)
 }
 
 // NewLogger initializes a Logger component with the given options.

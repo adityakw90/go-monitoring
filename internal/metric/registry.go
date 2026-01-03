@@ -95,6 +95,11 @@ func NewMetric(opts ...Option) (Metric, error) {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
 	}
 
+	// validate interval
+	if options.Interval <= 0 {
+		return nil, ErrIntervalInvalid
+	}
+
 	// Create the MeterProvider with the exporter
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithResource(res),

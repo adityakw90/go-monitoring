@@ -8,4 +8,5 @@ var (
 	ErrProviderHostRequired = errors.New("provider host is required")
 	ErrProviderPortRequired = errors.New("provider port is required")
 	ErrProviderPortInvalid  = errors.New("provider port must be greater than 0")
+	ErrIntervalInvalid      = errors.New("interval must be greater than 0")
 )

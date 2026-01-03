@@ -109,6 +109,11 @@ func NewTracer(opts ...Option) (Tracer, error) {
 		sampler = sdktrace.TraceIDRatioBased(options.SampleRatio)
 	}
 
+	// validate batch timeout
+	if options.BatchTimeout <= 0 {
+		return nil, ErrBatchTimeoutInvalid
+	}
+
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(
 			exporter,
