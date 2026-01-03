@@ -2,7 +2,8 @@ package logger
 
 import "go.uber.org/zap"
 
-// convertFields converts map[string]interface{} to zap fields.
+// convertFields converts a map[string]interface{} into a slice of zap.Field,
+// producing one zap.Field for each map entry. If the input is nil, convertFields returns nil.
 func convertFields(fields map[string]interface{}) []zap.Field {
 	if fields == nil {
 		return nil

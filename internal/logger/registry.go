@@ -7,6 +7,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// NewLogger creates and configures a zap-backed Logger according to the provided options.
+// It defaults the log level to "info", parses and applies the configured level (returning ErrInvalidLogLevel on parse failure),
+// enforces JSON encoding and a fixed timestamp layout ("2006-01-02T15:04:05.000-0700"), and optionally directs output to a custom path.
+// The built logger includes caller information and a caller-skip of 1; on build failure it returns a wrapped error.
 func NewLogger(opts ...Option) (Logger, error) {
 	options := &Options{
 		Level: "info",

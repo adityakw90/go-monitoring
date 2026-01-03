@@ -21,21 +21,24 @@ type Options struct {
 // It follows the functional options pattern for flexible tracer configuration.
 type Option func(*Options)
 
-// WithServiceName sets the service name for the tracer (internal use).
+// WithServiceName returns an Option that sets the tracer service name.
+// The provided name is applied to Options.ServiceName.
 func WithServiceName(name string) Option {
 	return func(o *Options) {
 		o.ServiceName = name
 	}
 }
 
-// WithEnvironment sets the environment (internal use).
+// WithEnvironment returns an Option that sets the tracer's Environment field.
+// The value typically identifies the deployment environment, e.g. "development" or "production".
 func WithEnvironment(env string) Option {
 	return func(o *Options) {
 		o.Environment = env
 	}
 }
 
-// WithInstance sets the instance name and host (internal use).
+// WithInstance sets the tracer instance name and host.
+// name is the instance identifier; host is the instance hostname.
 func WithInstance(name, host string) Option {
 	return func(o *Options) {
 		o.InstanceName = name
@@ -43,7 +46,7 @@ func WithInstance(name, host string) Option {
 	}
 }
 
-// WithProvider sets the tracer provider configuration (internal use).
+// collector endpoint to use when the provider requires a network collector.
 func WithProvider(provider, host string, port int) Option {
 	return func(o *Options) {
 		o.Provider = provider
@@ -52,21 +55,22 @@ func WithProvider(provider, host string, port int) Option {
 	}
 }
 
-// WithSampleRatio sets the sampling ratio (internal use).
+// WithSampleRatio returns an Option that sets the tracer sampling ratio.
+// Valid values are between 0.0 and 1.0 inclusive — 0.0 means never sample and 1.0 means always sample.
 func WithSampleRatio(ratio float64) Option {
 	return func(o *Options) {
 		o.SampleRatio = ratio
 	}
 }
 
-// WithBatchTimeout sets the batch timeout (internal use).
+// WithBatchTimeout returns an Option that sets the maximum time to wait before exporting a batch of spans.
 func WithBatchTimeout(timeout time.Duration) Option {
 	return func(o *Options) {
 		o.BatchTimeout = timeout
 	}
 }
 
-// WithInsecure sets whether to use an insecure connection for OTLP exporter (internal use).
+// WithInsecure sets whether the OTLP exporter uses an insecure (non‑TLS) connection.
 func WithInsecure(insecure bool) Option {
 	return func(o *Options) {
 		o.Insecure = insecure

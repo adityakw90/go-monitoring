@@ -8,8 +8,8 @@ import (
 	"github.com/adityakw90/go-monitoring/internal/tracer"
 )
 
-// parseOptions applies the given options to default options and returns the configured Options.
-// It follows the functional options pattern, starting with defaults and applying each option in order.
+// parseOptions applies the provided functional options to a copy of the package default Options
+// and returns the resulting configuration. Options are applied in order; later options override earlier ones.
 func parseOptions(opts ...Option) *Options {
 	options := defaultOptions()
 	for _, opt := range opts {
@@ -18,31 +18,8 @@ func parseOptions(opts ...Option) *Options {
 	return options
 }
 
-// NewLogger initializes a Logger component with the given options.
-//
-// It creates a structured logger using Zap that can be used for application logging.
-// The logger supports multiple log levels and outputs structured JSON logs.
-//
-// Optional options:
-//   - WithLoggerLevel: Log level (default: "info")
-//     Valid values: "debug", "info", "warn", "error", "fatal"
-//   - WithLoggerOutputPath: Output file path (default: stdout)
-//     If empty, logs will be written to stdout
-//
-// Returns an error if:
-//   - Logger initialization fails
-//   - Invalid log level is provided
-//
-// Example:
-//
-//	logger, err := NewLogger(
-//	    WithLoggerLevel("debug"),
-//	    WithLoggerOutputPath("/var/log/app.log"),
-//	)
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-//	defer logger.Sync()
+// NewLogger creates a Logger configured by the provided functional options.
+// It returns the initialized Logger or an error if initialization fails.
 func NewLogger(opts ...Option) (Logger, error) {
 	options := parseOptions(opts...)
 	loggerInstance, err := logger.NewLogger(
@@ -55,46 +32,11 @@ func NewLogger(opts ...Option) (Logger, error) {
 	return loggerInstance, nil
 }
 
-// NewTracer initializes a Tracer component with the given options.
-//
-// It creates a distributed tracing provider using OpenTelemetry that can be used
-// to create and manage spans for request tracing. The tracer supports both stdout
-// and OTLP exporters for development and production environments.
-//
-// Required options:
-//   - WithServiceName: Service name must be provided
-//
-// Optional options:
-//   - WithEnvironment: Deployment environment (default: "development")
-//   - WithInstance: Instance name and host
-//   - WithTracerProvider: Tracer exporter configuration (default: "stdout")
-//     Valid values: "stdout" (for development) or "otlp" (for production)
-//   - WithTracerSampleRatio: Sampling ratio (default: 1.0)
-//     Controls what percentage of traces are sampled (0.0 to 1.0)
-//   - WithTracerBatchTimeout: Batch timeout (default: 5 seconds)
-//     Maximum time to wait before exporting a batch of spans
-//   - WithTracerInsecure: Use insecure connection for OTLP (default: false)
-//     Should only be used in development or when TLS is handled by a proxy
-//
-// Returns an error if:
-//   - Service name is not provided
-//   - Tracer initialization fails
-//   - Invalid provider is specified
-//
-// Example:
-//
-//	tracer, err := NewTracer(
-//	    WithServiceName("my-service"),
-//	    WithEnvironment("production"),
-//	    WithInstance("instance-1", "localhost"),
-//	    WithTracerProvider("otlp", "localhost", 4317),
-//	    WithTracerSampleRatio(0.1), // Sample 10% of traces
-//	    WithTracerInsecure(false),
-//	)
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-//	defer tracer.Shutdown(context.Background())
+// NewTracer creates and returns a Tracer configured by the provided options.
+// It applies functional options to the default configuration and initializes an
+// underlying tracer instance with service name, environment, instance info,
+// provider settings, sampling ratio, batch timeout, and insecure flag.
+// Returns a non-nil error if tracer initialization fails.
 func NewTracer(opts ...Option) (Tracer, error) {
 	options := parseOptions(opts...)
 	tracerInstance, err := tracer.NewTracer(
@@ -112,44 +54,10 @@ func NewTracer(opts ...Option) (Tracer, error) {
 	return tracerInstance, nil
 }
 
-// NewMetric initializes a Metric component with the given options.
-//
-// It creates a metrics collection provider using OpenTelemetry that can be used
-// to record and export application metrics. The metric provider supports both stdout
-// and OTLP exporters for development and production environments.
-//
-// Required options:
-//   - WithServiceName: Service name must be provided
-//
-// Optional options:
-//   - WithEnvironment: Deployment environment (default: "development")
-//   - WithInstance: Instance name and host
-//   - WithMetricProvider: Metric exporter configuration (default: "stdout")
-//     Valid values: "stdout" (for development) or "otlp" (for production)
-//   - WithMetricInterval: Export interval (default: 60 seconds)
-//     Time interval between metric exports to the configured provider
-//   - WithMetricInsecure: Use insecure connection for OTLP (default: false)
-//     Should only be used in development or when TLS is handled by a proxy
-//
-// Returns an error if:
-//   - Service name is not provided
-//   - Metric initialization fails
-//   - Invalid provider is specified
-//
-// Example:
-//
-//	metric, err := NewMetric(
-//	    WithServiceName("my-service"),
-//	    WithEnvironment("production"),
-//	    WithInstance("instance-1", "localhost"),
-//	    WithMetricProvider("otlp", "localhost", 4318),
-//	    WithMetricInterval(30*time.Second), // Export every 30 seconds
-//	    WithMetricInsecure(false),
-//	)
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-//	defer metric.Shutdown(context.Background())
+// NewMetric creates a Metric configured by the provided functional options.
+// It applies the options to defaults and initializes the metric backend accordingly.
+// On success it returns the initialized Metric. If initialization fails it returns
+// nil and an error describing the failure (prefixed with "failed to initialize metric").
 func NewMetric(opts ...Option) (Metric, error) {
 	options := parseOptions(opts...)
 	metricInstance, err := metric.NewMetric(
@@ -166,45 +74,9 @@ func NewMetric(opts ...Option) (Metric, error) {
 	return metricInstance, nil
 }
 
-// NewMonitoring initializes all monitoring components (Logger, Tracer, Metric) with the given options.
-//
-// It creates a unified monitoring setup that can be used throughout the application.
-// If initialization of any component fails, all previously initialized components
-// are cleaned up before returning an error.
-//
-// Required options:
-//   - WithServiceName: Service name must be provided
-//
-// Optional options:
-//   - WithEnvironment: Deployment environment (default: "development")
-//   - WithInstance: Instance name and host
-//   - WithLoggerLevel: Log level (default: "info")
-//   - WithTracerProvider: Tracer exporter configuration (default: "stdout")
-//   - WithTracerSampleRatio: Sampling ratio (default: 1.0)
-//   - WithTracerBatchTimeout: Batch timeout (default: 5 seconds)
-//   - WithMetricProvider: Metric exporter configuration (default: "stdout")
-//   - WithMetricInterval: Export interval (default: 60 seconds)
-//
-// Returns an error if:
-//   - Service name is not provided
-//   - Logger initialization fails
-//   - Tracer initialization fails
-//   - Metric initialization fails
-//
-// Example:
-//
-//	mon, err := NewMonitoring(
-//	    WithServiceName("my-service"),
-//	    WithEnvironment("production"),
-//	    WithInstance("instance-1", "localhost"),
-//	    WithLoggerLevel("info"),
-//	    WithTracerProvider("otlp", "localhost", 4317),
-//	    WithMetricProvider("otlp", "localhost", 4318),
-//	)
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-//	defer mon.Shutdown(context.Background())
+// NewMonitoring initializes and returns a Monitoring containing Logger, Tracer, and Metric configured by the provided options.
+// It requires the ServiceName option; when ServiceName is empty it returns ErrServiceNameRequired.
+// If initialization of any component fails, previously initialized components are cleaned up (logger Sync, tracer Shutdown) and the error is returned wrapped via parseError.
 func NewMonitoring(opts ...Option) (*Monitoring, error) {
 	options := parseOptions(opts...)
 

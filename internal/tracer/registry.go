@@ -14,29 +14,10 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// NewTracer initializes a new OpenTelemetry tracer with the given options.
-//
-// It creates a tracer provider with the specified exporter (stdout or OTLP),
-// configures sampling based on the sample ratio, and sets up resource attributes
-// for service identification.
-//
-// Default configuration:
-//   - Provider: "stdout"
-//   - SampleRatio: 1.0 (always sample)
-//   - BatchTimeout: 5 seconds
-//
-// Returns an error if:
-//   - The provider type is invalid (not "stdout" or "otlp")
-//   - Resource creation fails
-//   - Exporter creation fails
-//
-// Example:
-//
-//	tracer, err := NewTracer(
-//	    WithServiceName("my-service"),
-//	    WithProvider("otlp", "localhost", 4317),
-//	    WithSampleRatio(0.1),
-//	)
+// NewTracer creates and configures an OpenTelemetry Tracer according to the provided Options.
+// Defaults are provider "stdout", sample ratio 1.0 (always sample), and a 5s batch timeout.
+// It returns an initialized Tracer or an error if validation fails (for example invalid batch timeout,
+// missing/invalid OTLP host or port, or an unsupported provider) or if resource/exporter creation fails.
 func NewTracer(opts ...Option) (Tracer, error) {
 	options := &Options{
 		Provider:     "stdout",
