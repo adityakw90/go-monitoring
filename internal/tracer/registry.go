@@ -33,9 +33,9 @@ import (
 // Example:
 //
 //	tracer, err := NewTracer(
-//	    withTracerServiceName("my-service"),
-//	    withTracerProvider("otlp", "localhost", 4317),
-//	    withTracerSampleRatio(0.1),
+//	    WithServiceName("my-service"),
+//	    WithProvider("otlp", "localhost", 4317),
+//	    WithSampleRatio(0.1),
 //	)
 func NewTracer(opts ...Option) (Tracer, error) {
 	options := &Options{
@@ -78,7 +78,7 @@ func NewTracer(opts ...Option) (Tracer, error) {
 		if options.Insecure {
 			otlpOpts = append(otlpOpts, otlptracegrpc.WithInsecure())
 		} else {
-			otlpOpts = append(otlpOpts, otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+			otlpOpts = append(otlpOpts, otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, options.ProviderHost)))
 		}
 		exporter, err = otlptracegrpc.New(context.Background(), otlpOpts...)
 	default:
