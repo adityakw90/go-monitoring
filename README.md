@@ -5,7 +5,7 @@
 
 A comprehensive observability library for Go that provides structured logging, distributed tracing, and metrics collection. This library consolidates monitoring functionality into a single, reusable package.
 
-**Version**: v0.1.0
+**Version**: v0.2.0
 
 > **⚠️ Pre-1.0.0 Notice**: This library is currently in version 0.x.x. **Backward compatibility is not guaranteed** until version 1.0.0 is released. Breaking changes may occur in minor version updates (0.x → 0.y). Please pin your dependency to a specific version or use a dependency management tool that locks versions.
 
@@ -26,7 +26,7 @@ go get github.com/adityakw90/go-monitoring
 
 > **⚠️ Version Compatibility**: For production use before v1.0.0, pin to a specific version:
 > ```bash
-> go get github.com/adityakw90/go-monitoring@v0.1.0
+> go get github.com/adityakw90/go-monitoring@v0.2.0
 > ```
 
 ## Quick Start
