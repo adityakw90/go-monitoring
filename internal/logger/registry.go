@@ -28,7 +28,9 @@ func NewLogger(opts ...Option) (Logger, error) {
 	config := zap.NewProductionConfig()
 	config.Level = atomicLevel
 	config.Encoding = "json"
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	// Use TimeEncoderOfLayout to ensure consistent format with +0000 for UTC instead of Z
+	// This ensures timestamps are always in offset format (e.g., +0000, +0700) regardless of timezone
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02T15:04:05.000-0700")
 
 	if options.OutputPath != "" {
 		config.OutputPaths = []string{options.OutputPath}
