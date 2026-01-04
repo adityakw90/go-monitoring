@@ -283,7 +283,7 @@ func TestLogger_Registry_NewLogger(t *testing.T) {
 			opts:        []Option{WithOutputPath("./this/path/does/not/exist/log.json")},
 			wantErr:     true,
 			wantErrType: nil,
-			wantErrMsg:  "failed to build logger: couldn't open sink \"./this/path/does/not/exist/log.json\": open ./this/path/does/not/exist/log.json: no such file or directory",
+			wantErrMsg:  "failed to build logger: open sink \"./this/path/does/not/exist/log.json\": open ./this/path/does/not/exist/log.json: no such file or directory",
 			checkFunc:   nil,
 		},
 	}
