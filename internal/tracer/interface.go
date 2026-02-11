@@ -12,7 +12,7 @@ type Tracer interface {
 	EndSpan(span trace.Span)
 	Shutdown(ctx context.Context) error
 	StartChildSpan(ctx context.Context, name string, parent trace.Span) (context.Context, trace.Span)
-	NewSpanFromContext(ctx context.Context) trace.Span
+	SpanFromContext(ctx context.Context) trace.Span
 	ExtractContext(ctx context.Context, md metadata.MD) context.Context
 	InjectContext(ctx context.Context) metadata.MD
 }
