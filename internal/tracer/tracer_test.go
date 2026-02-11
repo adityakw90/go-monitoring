@@ -102,25 +102,24 @@ func TestTracer_Tracer_StartChildSpan(t *testing.T) {
 	parentCtx := parentSpan.SpanContext()
 	childCtx := childSpan.SpanContext()
 
-	// Child should have the same TraceID as parent
+	// Child should have the same TraceID as parent (both return string from local interface)
 	if childCtx.TraceID() != parentCtx.TraceID() {
-		t.Errorf("StartChildSpan() child TraceID = %s, want %s", childCtx.TraceID().String(), parentCtx.TraceID().String())
+		t.Errorf("StartChildSpan() child TraceID = %s, want %s", childCtx.TraceID(), parentCtx.TraceID())
 	}
 
 	// Verify the parent span context is correctly propagated in the returned context
-	retrievedSpan := trace.SpanFromContext(ctx2)
+	retrievedSpan := tracer.SpanFromContext(ctx2)
 	if retrievedSpan == nil {
 		t.Errorf("StartChildSpan() context does not contain span")
 	}
-	retrievedCtx := retrievedSpan.SpanContext()
-	if retrievedCtx.TraceID() != parentCtx.TraceID() {
-		t.Errorf("StartChildSpan() retrieved span TraceID = %s, want %s", retrievedCtx.TraceID().String(), parentCtx.TraceID().String())
+	if retrievedSpan.SpanContext().TraceID().String() != parentSpan.SpanContext().TraceID().String() {
+		t.Errorf("StartChildSpan() retrieved span TraceID = %s, want %s", retrievedSpan.SpanContext().TraceID().String(), parentSpan.SpanContext().TraceID().String())
 	}
 
 	childSpan.End()
 }
 
-func TestTracer_Tracer_NewSpanFromContext(t *testing.T) {
+func TestTracer_Tracer_SpanFromContext(t *testing.T) {
 	tracer, err := NewTracer(WithServiceName("test-service"))
 	if err != nil {
 		t.Fatalf("NewTracer() error = %v", err)
@@ -136,12 +135,12 @@ func TestTracer_Tracer_NewSpanFromContext(t *testing.T) {
 	defer span.End()
 
 	// Get span from context
-	retrievedSpan := tracer.NewSpanFromContext(ctx)
+	retrievedSpan := tracer.SpanFromContext(ctx)
 	if retrievedSpan == nil {
-		t.Errorf("NewSpanFromContext() returned nil span")
+		t.Errorf("SpanFromContext() returned nil span")
 	}
-	if retrievedSpan.SpanContext().TraceID() != span.SpanContext().TraceID() {
-		t.Errorf("NewSpanFromContext() returned different trace ID")
+	if retrievedSpan.SpanContext().TraceID().String() != span.SpanContext().TraceID().String() {
+		t.Errorf("SpanFromContext() returned different trace ID")
 	}
 }
 
@@ -171,11 +170,11 @@ func TestTracer_Tracer_ExtractContext(t *testing.T) {
 	ctx2 = tracer.ExtractContext(ctx2, md)
 
 	// Verify span context was extracted
-	span2 := trace.SpanFromContext(ctx2)
-	if !span2.SpanContext().IsValid() {
+	span2 := tracer.SpanFromContext(ctx2)
+	if span2 == nil || !span2.SpanContext().IsValid() {
 		t.Errorf("ExtractContext() did not extract valid span context")
 	}
-	if span2.SpanContext().TraceID() != span.SpanContext().TraceID() {
+	if span2.SpanContext().TraceID().String() != span.SpanContext().TraceID().String() {
 		t.Errorf("ExtractContext() extracted different trace ID")
 	}
 }

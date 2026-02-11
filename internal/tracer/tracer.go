@@ -92,10 +92,12 @@ func (t *tracer) Shutdown(ctx context.Context) error {
 //	defer tracer.EndSpan(childSpan)
 func (t *tracer) StartChildSpan(ctx context.Context, name string, parent trace.Span) (context.Context, trace.Span) {
 	newCtx := trace.ContextWithSpanContext(ctx, parent.SpanContext())
-	return t.StartSpan(newCtx, name)
+	return t.StartSpan(newCtx, name, trace.WithLinks(trace.Link{
+		SpanContext: parent.SpanContext(),
+	}))
 }
 
-// NewSpanFromContext retrieves the span from the given context.
+// SpanFromContext retrieves the span from the given context.
 // Returns nil if no span is present in the context.
 //
 // Parameters:
@@ -106,11 +108,11 @@ func (t *tracer) StartChildSpan(ctx context.Context, name string, parent trace.S
 //
 // Example:
 //
-//	span := tracer.NewSpanFromContext(ctx)
+//	span := tracer.SpanFromContext(ctx)
 //	if span != nil {
 //	    span.SetAttributes(attribute.String("key", "value"))
 //	}
-func (t *tracer) NewSpanFromContext(ctx context.Context) trace.Span {
+func (t *tracer) SpanFromContext(ctx context.Context) trace.Span {
 	return trace.SpanFromContext(ctx)
 }
 
