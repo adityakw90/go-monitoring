@@ -16,6 +16,7 @@ func TestMonitoring_Options_DefaultOptions(t *testing.T) {
 		{"Environment", opts.Environment, "development"},
 		{"LoggerLevel", opts.LoggerLevel, "info"},
 		{"LoggerOutputPath", opts.LoggerOutputPath, ""},
+		{"LoggerCallerSkipNum", opts.LoggerCallerSkipNum, 1},
 		{"TracerProvider", opts.TracerProvider, "stdout"},
 		{"TracerSampleRatio", opts.TracerSampleRatio, 1.0},
 		{"TracerBatchTimeout", opts.TracerBatchTimeout, 5 * time.Second},

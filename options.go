@@ -255,13 +255,14 @@ func WithMetricInsecure(insecure bool) Option {
 // interval to 60s.
 func defaultOptions() *Options {
 	return &Options{
-		Environment:        "development",
-		LoggerLevel:        "info",
-		LoggerOutputPath:   "",
-		TracerProvider:     "stdout",
-		TracerSampleRatio:  1.0,
-		TracerBatchTimeout: 5 * time.Second,
-		MetricProvider:     "stdout",
-		MetricInterval:     60 * time.Second,
+		Environment:         "development",
+		LoggerLevel:         "info",
+		LoggerOutputPath:    "",
+		LoggerCallerSkipNum: 1,
+		TracerProvider:      "stdout",
+		TracerSampleRatio:   1.0,
+		TracerBatchTimeout:  5 * time.Second,
+		MetricProvider:      "stdout",
+		MetricInterval:      60 * time.Second,
 	}
 }
