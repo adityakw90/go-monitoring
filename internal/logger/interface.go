@@ -11,5 +11,6 @@ type Logger interface {
 	Error(message string, fields map[string]interface{})
 	Fatal(message string, fields map[string]interface{})
 	WithSpanContext(span trace.SpanContext) Logger
+	AddCallerSkipNum(skipNum int) Logger
 	Sync() error
 }
