@@ -2,6 +2,9 @@ package logger
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -538,4 +541,120 @@ func TestLogger_Logger_AllLogLevels(t *testing.T) {
 			loggerInstance.Error("error message", fields)
 		})
 	}
+}
+
+func TestLogger_CallerSkip(t *testing.T) {
+	// Create a temporary file for logging
+	tmpFile := t.TempDir() + "/test.log"
+
+	tests := []struct {
+		name         string
+		callerSkip   int
+		expectedFunc string
+	}{
+		{
+			name:         "default caller skip (1)",
+			callerSkip:   1,
+			expectedFunc: "TestLogger_CallerSkip", // Direct caller
+		},
+		{
+			name:         "higher caller skip (2)",
+			callerSkip:   2,
+			expectedFunc: "tRunner", // Caller's caller (testing framework)
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Initialize logger with file output and specific caller skip
+			loggerInstance, err := NewLogger(
+				WithLevel("info"),
+				WithOutputPath(tmpFile),
+				WithCallerSkipNum(tt.callerSkip),
+			)
+			require.NoError(t, err)
+
+			// Log a message
+			loggerInstance.Info("test message", nil)
+
+			// We need to sync/flush the logger to ensure content is written to file
+			_ = loggerInstance.Sync()
+
+			// Read file content
+			content, err := os.ReadFile(tmpFile)
+			require.NoError(t, err)
+
+			// Parse JSON
+			var logEntry map[string]interface{}
+			lines := strings.Split(strings.TrimSpace(string(content)), "\n")
+			lastLine := lines[len(lines)-1] // Get the last log line
+			err = json.Unmarshal([]byte(lastLine), &logEntry)
+			require.NoError(t, err)
+
+			// Verify caller
+			caller, ok := logEntry["caller"].(string)
+			require.True(t, ok, "caller field missing or not a string")
+
+			// The caller format is usually "package/file.go:line"
+			// We want to check if it contains the expected function name context logic
+			// However, standard zap caller just gives file path and line number.
+			// The file path should point to where the log was called for skip=1,
+			// and where the caller of this function was called for skip=2.
+
+			if tt.callerSkip == 1 {
+				// Should be this file
+				require.Contains(t, caller, "logger_test.go")
+			} else if tt.callerSkip == 2 {
+				// Should be testing/testing.go or similar, definitely NOT logger_test.go
+				require.NotContains(t, caller, "logger_test.go")
+			}
+		})
+	}
+}
+
+func TestLogger_AddCallerSkipNum(t *testing.T) {
+	// Create a temporary file for logging
+	tmpFile := t.TempDir() + "/test_add_skip.log"
+
+	// Initialize logger with file output
+	loggerInstance, err := NewLogger(
+		WithLevel("info"),
+		WithOutputPath(tmpFile),
+	)
+	require.NoError(t, err)
+
+	// Log with initial logger (default skip=1)
+	loggerInstance.Info("message 1", nil)
+
+	// Add skip num (skip=1 + 1 = 2)
+	loggerWithSkip := loggerInstance.AddCallerSkipNum(1)
+	loggerWithSkip.Info("message 2", nil)
+
+	// Sync both (calling sync on loggerWithSkip should sync underlying logger)
+	_ = loggerInstance.Sync()
+
+	// Read file content
+	content, err := os.ReadFile(tmpFile)
+	require.NoError(t, err)
+
+	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
+	require.Len(t, lines, 2)
+
+	// Parse first log entry
+	var logEntry1 map[string]interface{}
+	err = json.Unmarshal([]byte(lines[0]), &logEntry1)
+	require.NoError(t, err)
+	caller1, ok := logEntry1["caller"].(string)
+	require.True(t, ok, "caller field missing or not a string in first log")
+	// Expect caller1 to be this test function (logger_test.go)
+	require.Contains(t, caller1, "logger_test.go", "first log caller should be in logger_test.go")
+
+	// Parse second log entry
+	var logEntry2 map[string]interface{}
+	err = json.Unmarshal([]byte(lines[1]), &logEntry2)
+	require.NoError(t, err)
+	caller2, ok := logEntry2["caller"].(string)
+	require.True(t, ok, "caller field missing or not a string in second log")
+	// Expect caller2 NOT to be this test function (should be caller of this test function)
+	require.NotContains(t, caller2, "logger_test.go", "second log caller should NOT be in logger_test.go due to additional skip")
 }

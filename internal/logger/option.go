@@ -1,8 +1,9 @@
 package logger
 
 type Options struct {
-	Level      string // Level is the minimum log level to output. Valid values: "debug", "info", "warn", "error", "fatal".
-	OutputPath string // OutputPath is the file path where logs will be written. If empty, logs will be written to stdout.
+	Level         string // Level is the minimum log level to output. Valid values: "debug", "info", "warn", "error", "fatal".
+	OutputPath    string // OutputPath is the file path where logs will be written. If empty, logs will be written to stdout.
+	CallerSkipNum int    // CallerSkipNum is the number of stack frames to skip when logging.
 }
 
 type Option func(*Options)
@@ -20,5 +21,11 @@ func WithLevel(level string) Option {
 func WithOutputPath(path string) Option {
 	return func(o *Options) {
 		o.OutputPath = path
+	}
+}
+
+func WithCallerSkipNum(skipNum int) Option {
+	return func(o *Options) {
+		o.CallerSkipNum = skipNum
 	}
 }

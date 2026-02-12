@@ -149,6 +149,24 @@ func (l *logger) WithSpanContext(span trace.SpanContext) Logger {
 	}
 }
 
+// AddCallerSkipNum adds a caller skip number to the logger.
+// This is used to skip a certain number of caller frames when logging.
+//
+// Parameters:
+//   - skipNum: The number of caller frames to skip
+//
+// Example:
+//
+//	logger := logger.AddCallerSkipNum(1)
+//	logger.Info("Operation started", nil)
+//	// Logs will include caller information
+func (l *logger) AddCallerSkipNum(skipNum int) Logger {
+	return &logger{
+		logger: l.logger.WithOptions(zap.AddCallerSkip(skipNum)),
+		level:  l.level,
+	}
+}
+
 // Sync flushes any buffered log entries.
 // This should be called before application shutdown to ensure all logs are written.
 // It is safe to call on a nil logger.

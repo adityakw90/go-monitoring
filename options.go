@@ -5,23 +5,24 @@ import "time"
 // Options contains all configuration for monitoring components.
 // It is used internally by NewMonitoring and should be configured using Option functions.
 type Options struct {
-	ServiceName        string        // ServiceName is the name of the service (required).
-	Environment        string        // Environment is the deployment environment (e.g., "development", "production").
-	InstanceName       string        // InstanceName is the unique identifier for this service instance.
-	InstanceHost       string        // InstanceHost is the hostname where this service instance is running.
-	LoggerLevel        string        // LoggerLevel is the minimum log level to output. Valid values: "debug", "info", "warn", "error", "fatal".
-	LoggerOutputPath   string        // LoggerOutputPath is the file path where logs will be written. If empty, logs will be written to stdout.
-	TracerProvider     string        // TracerProvider specifies the trace exporter to use ("stdout" or "otlp").
-	TracerProviderHost string        // TracerProviderHost is the hostname of the OTLP trace collector.
-	TracerProviderPort int           // TracerProviderPort is the port of the OTLP trace collector.
-	TracerSampleRatio  float64       // TracerSampleRatio controls the sampling rate for traces (0.0 to 1.0). 0.0 means never sample, 1.0 means always sample.
-	TracerBatchTimeout time.Duration // TracerBatchTimeout is the maximum time to wait before exporting a batch of spans.
-	TracerInsecure     bool          // TracerInsecure controls whether to use an insecure (non-TLS) connection for OTLP exporter.
-	MetricProvider     string        // MetricProvider specifies the metric exporter to use ("stdout" or "otlp").
-	MetricProviderHost string        // MetricProviderHost is the hostname of the OTLP metric collector.
-	MetricProviderPort int           // MetricProviderPort is the port of the OTLP metric collector.
-	MetricInterval     time.Duration // MetricInterval is the time interval between metric exports.
-	MetricInsecure     bool          // MetricInsecure controls whether to use an insecure (non-TLS) connection for OTLP exporter.
+	ServiceName         string        // ServiceName is the name of the service (required).
+	Environment         string        // Environment is the deployment environment (e.g., "development", "production").
+	InstanceName        string        // InstanceName is the unique identifier for this service instance.
+	InstanceHost        string        // InstanceHost is the hostname where this service instance is running.
+	LoggerLevel         string        // LoggerLevel is the minimum log level to output. Valid values: "debug", "info", "warn", "error", "fatal".
+	LoggerOutputPath    string        // LoggerOutputPath is the file path where logs will be written. If empty, logs will be written to stdout.
+	LoggerCallerSkipNum int           // LoggerCallerSkipNum is the number of stack frames to skip when logging.
+	TracerProvider      string        // TracerProvider specifies the trace exporter to use ("stdout" or "otlp").
+	TracerProviderHost  string        // TracerProviderHost is the hostname of the OTLP trace collector.
+	TracerProviderPort  int           // TracerProviderPort is the port of the OTLP trace collector.
+	TracerSampleRatio   float64       // TracerSampleRatio controls the sampling rate for traces (0.0 to 1.0). 0.0 means never sample, 1.0 means always sample.
+	TracerBatchTimeout  time.Duration // TracerBatchTimeout is the maximum time to wait before exporting a batch of spans.
+	TracerInsecure      bool          // TracerInsecure controls whether to use an insecure (non-TLS) connection for OTLP exporter.
+	MetricProvider      string        // MetricProvider specifies the metric exporter to use ("stdout" or "otlp").
+	MetricProviderHost  string        // MetricProviderHost is the hostname of the OTLP metric collector.
+	MetricProviderPort  int           // MetricProviderPort is the port of the OTLP metric collector.
+	MetricInterval      time.Duration // MetricInterval is the time interval between metric exports.
+	MetricInsecure      bool          // MetricInsecure controls whether to use an insecure (non-TLS) connection for OTLP exporter.
 }
 
 // Option is a function that configures Options.
@@ -96,6 +97,14 @@ func WithLoggerLevel(level string) Option {
 func WithLoggerOutputPath(path string) Option {
 	return func(o *Options) {
 		o.LoggerOutputPath = path
+	}
+}
+
+// WithLoggerCallerSkipNum returns an Option that sets the number of stack frames to skip when logging.
+// This is used to skip the logger wrapper frames and get the actual caller frames.
+func WithLoggerCallerSkipNum(skipNum int) Option {
+	return func(o *Options) {
+		o.LoggerCallerSkipNum = skipNum
 	}
 }
 
@@ -248,13 +257,14 @@ func WithMetricInsecure(insecure bool) Option {
 // interval to 60s.
 func defaultOptions() *Options {
 	return &Options{
-		Environment:        "development",
-		LoggerLevel:        "info",
-		LoggerOutputPath:   "",
-		TracerProvider:     "stdout",
-		TracerSampleRatio:  1.0,
-		TracerBatchTimeout: 5 * time.Second,
-		MetricProvider:     "stdout",
-		MetricInterval:     60 * time.Second,
+		Environment:         "development",
+		LoggerLevel:         "info",
+		LoggerOutputPath:    "",
+		LoggerCallerSkipNum: 1,
+		TracerProvider:      "stdout",
+		TracerSampleRatio:   1.0,
+		TracerBatchTimeout:  5 * time.Second,
+		MetricProvider:      "stdout",
+		MetricInterval:      60 * time.Second,
 	}
 }

@@ -16,6 +16,7 @@ func TestMonitoring_Options_DefaultOptions(t *testing.T) {
 		{"Environment", opts.Environment, "development"},
 		{"LoggerLevel", opts.LoggerLevel, "info"},
 		{"LoggerOutputPath", opts.LoggerOutputPath, ""},
+		{"LoggerCallerSkipNum", opts.LoggerCallerSkipNum, 1},
 		{"TracerProvider", opts.TracerProvider, "stdout"},
 		{"TracerSampleRatio", opts.TracerSampleRatio, 1.0},
 		{"TracerBatchTimeout", opts.TracerBatchTimeout, 5 * time.Second},
@@ -160,6 +161,29 @@ func TestMonitoring_Options_WithLoggerOutputPath(t *testing.T) {
 			WithLoggerOutputPath(tt.path)(opts)
 			if opts.LoggerOutputPath != tt.want {
 				t.Errorf("WithLoggerOutputPath(%q) LoggerOutputPath = %v, want %v", tt.path, opts.LoggerOutputPath, tt.want)
+			}
+		})
+	}
+}
+
+func TestMonitoring_Options_WithLoggerCallerSkipNum(t *testing.T) {
+	tests := []struct {
+		name    string
+		skipNum int
+		want    int
+	}{
+		{"default_one", 1, 1},
+		{"zero", 0, 0},
+		{"positive", 5, 5},
+		{"negative", -1, -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := defaultOptions()
+			WithLoggerCallerSkipNum(tt.skipNum)(opts)
+			if opts.LoggerCallerSkipNum != tt.want {
+				t.Errorf("WithLoggerCallerSkipNum(%d) LoggerCallerSkipNum = %v, want %v", tt.skipNum, opts.LoggerCallerSkipNum, tt.want)
 			}
 		})
 	}

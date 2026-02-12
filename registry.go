@@ -25,6 +25,7 @@ func NewLogger(opts ...Option) (Logger, error) {
 	loggerInstance, err := logger.NewLogger(
 		logger.WithLevel(options.LoggerLevel),
 		logger.WithOutputPath(options.LoggerOutputPath),
+		logger.WithCallerSkipNum(options.LoggerCallerSkipNum),
 	)
 	if err != nil {
 		return nil, parseError(err, "failed to initialize logger")
@@ -89,6 +90,7 @@ func NewMonitoring(opts ...Option) (*Monitoring, error) {
 	loggerInstance, err := logger.NewLogger(
 		logger.WithLevel(options.LoggerLevel),
 		logger.WithOutputPath(options.LoggerOutputPath),
+		logger.WithCallerSkipNum(options.LoggerCallerSkipNum),
 	)
 	if err != nil {
 		return nil, parseError(err, "failed to initialize logger")

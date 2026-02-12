@@ -12,8 +12,10 @@ import (
 // enforces JSON encoding and a fixed timestamp layout ("2006-01-02T15:04:05.000-0700"), and optionally directs output to a custom path.
 // The built logger includes caller information and a caller-skip of 1; on build failure it returns a wrapped error.
 func NewLogger(opts ...Option) (Logger, error) {
+	// default options
 	options := &Options{
-		Level: "info",
+		Level:         "info",
+		CallerSkipNum: 1,
 	}
 
 	for _, opt := range opts {
@@ -40,7 +42,7 @@ func NewLogger(opts ...Option) (Logger, error) {
 		config.OutputPaths = []string{options.OutputPath}
 	}
 
-	loggerInstance, err := config.Build(zap.AddCaller(), zap.AddCallerSkip(1))
+	loggerInstance, err := config.Build(zap.AddCaller(), zap.AddCallerSkip(options.CallerSkipNum))
 	if err != nil {
 		return nil, fmt.Errorf("failed to build logger: %w", err)
 	}
