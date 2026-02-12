@@ -166,6 +166,29 @@ func TestMonitoring_Options_WithLoggerOutputPath(t *testing.T) {
 	}
 }
 
+func TestMonitoring_Options_WithLoggerCallerSkipNum(t *testing.T) {
+	tests := []struct {
+		name    string
+		skipNum int
+		want    int
+	}{
+		{"default_one", 1, 1},
+		{"zero", 0, 0},
+		{"positive", 5, 5},
+		{"negative", -1, -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := defaultOptions()
+			WithLoggerCallerSkipNum(tt.skipNum)(opts)
+			if opts.LoggerCallerSkipNum != tt.want {
+				t.Errorf("WithLoggerCallerSkipNum(%d) LoggerCallerSkipNum = %v, want %v", tt.skipNum, opts.LoggerCallerSkipNum, tt.want)
+			}
+		})
+	}
+}
+
 func TestMonitoring_Options_WithTracerProvider(t *testing.T) {
 	tests := []struct {
 		name     string

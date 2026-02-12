@@ -611,3 +611,50 @@ func TestLogger_CallerSkip(t *testing.T) {
 		})
 	}
 }
+
+func TestLogger_AddCallerSkipNum(t *testing.T) {
+	// Create a temporary file for logging
+	tmpFile := t.TempDir() + "/test_add_skip.log"
+
+	// Initialize logger with file output
+	loggerInstance, err := NewLogger(
+		WithLevel("info"),
+		WithOutputPath(tmpFile),
+	)
+	require.NoError(t, err)
+
+	// Log with initial logger (default skip=1)
+	loggerInstance.Info("message 1", nil)
+
+	// Add skip num (skip=1 + 1 = 2)
+	loggerWithSkip := loggerInstance.AddCallerSkipNum(1)
+	loggerWithSkip.Info("message 2", nil)
+
+	// Sync both (calling sync on loggerWithSkip should sync underlying logger)
+	_ = loggerInstance.Sync()
+
+	// Read file content
+	content, err := os.ReadFile(tmpFile)
+	require.NoError(t, err)
+
+	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
+	require.Len(t, lines, 2)
+
+	// Parse first log entry
+	var logEntry1 map[string]interface{}
+	err = json.Unmarshal([]byte(lines[0]), &logEntry1)
+	require.NoError(t, err)
+	caller1, ok := logEntry1["caller"].(string)
+	require.True(t, ok, "caller field missing or not a string in first log")
+	// Expect caller1 to be this test function (logger_test.go)
+	require.Contains(t, caller1, "logger_test.go", "first log caller should be in logger_test.go")
+
+	// Parse second log entry
+	var logEntry2 map[string]interface{}
+	err = json.Unmarshal([]byte(lines[1]), &logEntry2)
+	require.NoError(t, err)
+	caller2, ok := logEntry2["caller"].(string)
+	require.True(t, ok, "caller field missing or not a string in second log")
+	// Expect caller2 NOT to be this test function (should be caller of this test function)
+	require.NotContains(t, caller2, "logger_test.go", "second log caller should NOT be in logger_test.go due to additional skip")
+}

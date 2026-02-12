@@ -100,6 +100,8 @@ func WithLoggerOutputPath(path string) Option {
 	}
 }
 
+// WithLoggerCallerSkipNum returns an Option that sets the number of stack frames to skip when logging.
+// This is used to skip the logger wrapper frames and get the actual caller frames.
 func WithLoggerCallerSkipNum(skipNum int) Option {
 	return func(o *Options) {
 		o.LoggerCallerSkipNum = skipNum
