@@ -161,3 +161,55 @@ func TestLogger_Option_WithOutputPath(t *testing.T) {
 		})
 	}
 }
+
+func TestLogger_Option_WithCallerSkipNum(t *testing.T) {
+	tests := []struct {
+		name      string
+		skipNum   int
+		checkFunc func(t *testing.T, opts *Options)
+	}{
+		{
+			name:    "set caller skip num",
+			skipNum: 2,
+			checkFunc: func(t *testing.T, opts *Options) {
+				if opts.CallerSkipNum != 2 {
+					t.Errorf("WithCallerSkipNum() set skipNum = %v, want %v", opts.CallerSkipNum, 2)
+				}
+			},
+		},
+		{
+			name:    "set zero caller skip num",
+			skipNum: 0,
+			checkFunc: func(t *testing.T, opts *Options) {
+				if opts.CallerSkipNum != 0 {
+					t.Errorf("WithCallerSkipNum() set skipNum = %v, want %v", opts.CallerSkipNum, 0)
+				}
+			},
+		},
+		{
+			name:    "override existing caller skip num",
+			skipNum: 3,
+			checkFunc: func(t *testing.T, opts *Options) {
+				opts.CallerSkipNum = 1
+				opt := WithCallerSkipNum(3)
+				opt(opts)
+				if opts.CallerSkipNum != 3 {
+					t.Errorf("WithCallerSkipNum() set skipNum = %v, want %v", opts.CallerSkipNum, 3)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := &Options{
+				CallerSkipNum: 1,
+			}
+			opt := WithCallerSkipNum(tt.skipNum)
+			opt(opts)
+			if tt.checkFunc != nil {
+				tt.checkFunc(t, opts)
+			}
+		})
+	}
+}
