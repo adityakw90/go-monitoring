@@ -101,7 +101,9 @@ func NewTracer(opts ...Option) (Tracer, error) {
 			sdktrace.WithBatchTimeout(options.BatchTimeout),
 		),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sampler),
+		sdktrace.WithSampler(
+			sdktrace.ParentBased(sampler),
+		),
 	)
 
 	return &tracer{
