@@ -133,7 +133,7 @@ func (t *tracer) SpanFromContext(ctx context.Context) trace.Span {
 //	ctx := tracer.ExtractContext(ctx, md)
 //	ctx, span := tracer.StartSpan(ctx, "handle-request")
 //	defer tracer.EndSpan(span)
-func (t *tracer) ExtractContext(ctx context.Context, md metadata.MD) context.Context {
+func (t *tracer) ExtractContext(ctx context.Context, md map[string][]string) context.Context {
 	carrier := propagation.HeaderCarrier{}
 	for k, v := range md {
 		if len(v) > 0 {
@@ -159,7 +159,7 @@ func (t *tracer) ExtractContext(ctx context.Context, md metadata.MD) context.Con
 //	md := tracer.InjectContext(ctx)
 //	ctx := metadata.NewOutgoingContext(ctx, md)
 //	resp, err := client.Call(ctx, req)
-func (t *tracer) InjectContext(ctx context.Context) metadata.MD {
+func (t *tracer) InjectContext(ctx context.Context) map[string][]string {
 	md := metadata.New(nil)
 	t.propagator.Inject(ctx, propagation.HeaderCarrier(md))
 
